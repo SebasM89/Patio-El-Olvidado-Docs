@@ -1,23 +1,59 @@
-Usuario
+# Entidades
+
+## Usuario
 - id
 - nombre
-- email
+- email (único)
 - passwordHash
 - rolId
 - estado
 - ultimoAcceso
+- intentosFallidos
+- bloqueadoHasta
 
-Administrador
+## Rol
+- id
+- nombre (único)
+- descripcion
 
-Empleado
+## Permiso
+- id
+- codigo (único)
+- nombre
+- descripcion
+
+## RolPermiso
+- rolId
+- permisoId
+
+## RefreshToken
+- id
+- usuarioId
+- token (único)
+- expiresAt
+- createdAt
+- revokedAt
+- replacedByToken
+
+## PasswordResetToken
+- id
+- usuarioId
+- token (único)
+- expiresAt
+- createdAt
+- usedAt
+
+## Administrador
+
+## Empleado
 - tarifaHora
 - horasTrabajadas
 
-Cliente
+## Cliente
 - telefono
 - visitas
 
-Producto
+## Producto
 - id
 - nombre
 - descripcion
@@ -26,42 +62,42 @@ Producto
 - imagen
 - etiquetas
 
-Pedido
+## Pedido
 - id
 - tipo
 - estado
 - subtotal
 - total
 
-DetallePedido
+## DetallePedido
 - cantidad
 - precioUnitario
 
-Pago
+## Pago
 - metodo
 - estado
 - monto
-Rol
-Permiso
-RefreshToken
-AuditoriaLog
-ConfiguracionSistema
-Reserva
+
+## AuditoriaLog
+
+## ConfiguracionSistema
+
+## Reserva
 - fecha
 - hora
 - personas
 - estado
 
-Caja
+## Caja
 - fecha
 - total
 
-Inventario
+## Inventario
 
-Proveedor
+## Proveedor
 
-Promocion
+## Promocion
 
-Mesa
+## Mesa
 
-Notificacion
+## Notificacion

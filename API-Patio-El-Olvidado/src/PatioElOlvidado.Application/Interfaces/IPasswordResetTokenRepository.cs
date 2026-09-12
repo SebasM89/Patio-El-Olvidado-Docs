@@ -1,0 +1,11 @@
+using PatioElOlvidado.Domain.Entities;
+
+namespace PatioElOlvidado.Application.Interfaces;
+
+public interface IPasswordResetTokenRepository
+{
+    Task AddAsync(PasswordResetToken token, CancellationToken cancellationToken = default);
+    Task<PasswordResetToken?> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
+    Task UpdateAsync(PasswordResetToken token, CancellationToken cancellationToken = default);
+    Task InvalidateActiveTokensAsync(int usuarioId, CancellationToken cancellationToken = default);
+}

@@ -4,6 +4,75 @@ GO
 USE ElOlvidado;
 GO
 
+-- =========================
+-- Autenticación (MVP)
+-- =========================
+
+CREATE TABLE Roles (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Nombre NVARCHAR(50) NOT NULL UNIQUE,
+    Descripcion NVARCHAR(200) NULL
+);
+
+CREATE TABLE Permisos (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Codigo NVARCHAR(80) NOT NULL UNIQUE,
+    Nombre NVARCHAR(100) NOT NULL,
+    Descripcion NVARCHAR(200) NULL
+);
+
+CREATE TABLE RolPermisos (
+    RolId INT NOT NULL,
+    PermisoId INT NOT NULL,
+    PRIMARY KEY (RolId, PermisoId),
+    FOREIGN KEY (RolId) REFERENCES Roles(Id),
+    FOREIGN KEY (PermisoId) REFERENCES Permisos(Id)
+);
+
+CREATE TABLE Usuarios (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Nombre NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(150) NOT NULL UNIQUE,
+    PasswordHash NVARCHAR(255) NOT NULL,
+    RolId INT NOT NULL,
+    Estado NVARCHAR(30) NOT NULL CONSTRAINT DF_Usuarios_Estado DEFAULT ('Activo'),
+    UltimoAcceso DATETIME2 NULL,
+    IntentosFallidos INT NOT NULL CONSTRAINT DF_Usuarios_Intentos DEFAULT (0),
+    BloqueadoHasta DATETIME2 NULL,
+    FOREIGN KEY (RolId) REFERENCES Roles(Id)
+);
+
+CREATE TABLE RefreshTokens (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UsuarioId INT NOT NULL,
+    Token NVARCHAR(500) NOT NULL UNIQUE,
+    ExpiresAt DATETIME2 NOT NULL,
+    CreatedAt DATETIME2 NOT NULL,
+    RevokedAt DATETIME2 NULL,
+    ReplacedByToken NVARCHAR(500) NULL,
+    FOREIGN KEY (UsuarioId) REFERENCES Usuarios(Id) ON DELETE CASCADE
+);
+
+CREATE TABLE PasswordResetTokens (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    UsuarioId INT NOT NULL,
+    Token NVARCHAR(500) NOT NULL UNIQUE,
+    ExpiresAt DATETIME2 NOT NULL,
+    CreatedAt DATETIME2 NOT NULL,
+    UsedAt DATETIME2 NULL,
+    FOREIGN KEY (UsuarioId) REFERENCES Usuarios(Id) ON DELETE CASCADE
+);
+
+-- Seed roles
+INSERT INTO Roles (Nombre, Descripcion) VALUES
+(N'Admin', N'Administrador del sistema'),
+(N'Empleado', N'Empleado del restaurante'),
+(N'Cliente', N'Cliente');
+
+-- =========================
+-- Dominio operativo (legado / MVP futuro)
+-- =========================
+
 -- Tabla Clientes
 CREATE TABLE Clientes (
     id_cliente INT PRIMARY KEY IDENTITY(1,1),
