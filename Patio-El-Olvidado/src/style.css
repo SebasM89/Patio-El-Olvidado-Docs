@@ -336,6 +336,36 @@ body {
   padding: 1.25rem;
 }
 
+.caja-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.caja-fecha-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #57534e;
+}
+
+.caja-fecha-input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.caja-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .caja-fecha {
   margin: 0 0 1rem;
   color: #57534e;

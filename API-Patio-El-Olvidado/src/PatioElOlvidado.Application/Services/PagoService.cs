@@ -115,25 +115,6 @@ public class PagoService : IPagoService
         return Map(pago);
     }
 
-    public async Task<CajaDiaDto> GetCajaHoyAsync(CancellationToken cancellationToken = default)
-    {
-        var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
-        var caja = await _cajas.GetByFechaAsync(hoy, cancellationToken);
-        if (caja is null)
-        {
-            return new CajaDiaDto
-            {
-                Fecha = hoy,
-                TotalEfectivo = 0,
-                TotalTarjeta = 0,
-                TotalTransferencia = 0,
-                Total = 0
-            };
-        }
-
-        return MapCaja(caja);
-    }
-
     /// <summary>
     /// Incrementa Cliente.Visitas al completar el cobro; idempotente vía Pedido.VisitaContabilizada.
     /// Anulación no decrementa visitas (MVP).
@@ -244,15 +225,6 @@ public class PagoService : IPagoService
         Monto = pago.Monto,
         FechaPago = pago.FechaPago,
         CajaId = pago.CajaId
-    };
-
-    private static CajaDiaDto MapCaja(Caja caja) => new()
-    {
-        Fecha = caja.Fecha,
-        TotalEfectivo = caja.TotalEfectivo,
-        TotalTarjeta = caja.TotalTarjeta,
-        TotalTransferencia = caja.TotalTransferencia,
-        Total = caja.Total
     };
 
     private static class StatusCodes

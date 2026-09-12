@@ -1,5 +1,5 @@
 import api from './api'
-import type { CajaDia, CreatePagoPayload, Pago } from '../types/pago'
+import type { CreatePagoPayload, Pago } from '../types/pago'
 
 export const pagoService = {
   listByPedido(pedidoId: number) {
@@ -13,8 +13,5 @@ export const pagoService = {
   },
   anular(id: number) {
     return api.post<Pago>(`/api/pagos/${id}/anular`)
-  },
-  cajaHoy() {
-    return api.get<CajaDia>('/api/caja/hoy')
   },
 }

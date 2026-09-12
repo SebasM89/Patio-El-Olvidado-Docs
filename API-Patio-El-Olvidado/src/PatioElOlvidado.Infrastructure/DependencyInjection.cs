@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PatioElOlvidado.Application.Interfaces;
 using PatioElOlvidado.Application.Options;
 using PatioElOlvidado.Infrastructure.Email;
+using PatioElOlvidado.Infrastructure.Export;
 using PatioElOlvidado.Infrastructure.Persistence;
 using PatioElOlvidado.Infrastructure.Repositories;
 using PatioElOlvidado.Infrastructure.Security;
@@ -34,6 +35,8 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IEmailSender, LoggingEmailSender>();
+        services.AddSingleton<ICajaPdfExporter, QuestPdfCajaExporter>();
+        services.AddSingleton<ICajaCsvExporter, CsvHelperCajaExporter>();
 
         return services;
     }

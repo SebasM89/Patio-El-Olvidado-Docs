@@ -47,7 +47,27 @@ public class PagosControllerAuthTests
         Assert.Equal("api/caja", route?.Template);
 
         var hoy = typeof(CajaController).GetMethod(nameof(CajaController.GetHoy))!;
-        var get = hoy.GetCustomAttribute<HttpGetAttribute>();
-        Assert.Equal("hoy", get?.Template);
+        var getHoy = hoy.GetCustomAttribute<HttpGetAttribute>();
+        Assert.Equal("hoy", getHoy?.Template);
+    }
+
+    [Fact]
+    public void CajaController_ExportEndpoints_ExistAndAuthorizeInherited()
+    {
+        var getByFecha = typeof(CajaController).GetMethod(nameof(CajaController.GetByFecha))!;
+        Assert.NotNull(getByFecha.GetCustomAttribute<HttpGetAttribute>());
+
+        var pdf = typeof(CajaController).GetMethod(nameof(CajaController.ExportPdf))!;
+        var pdfGet = pdf.GetCustomAttribute<HttpGetAttribute>();
+        Assert.Equal("export/pdf", pdfGet?.Template);
+
+        var csv = typeof(CajaController).GetMethod(nameof(CajaController.ExportCsv))!;
+        var csvGet = csv.GetCustomAttribute<HttpGetAttribute>();
+        Assert.Equal("export/csv", csvGet?.Template);
+
+        // Sin [AllowAnonymous]: hereda Admin|Empleado (Cliente → 403)
+        Assert.Null(pdf.GetCustomAttribute<AllowAnonymousAttribute>());
+        Assert.Null(csv.GetCustomAttribute<AllowAnonymousAttribute>());
+        Assert.Null(getByFecha.GetCustomAttribute<AllowAnonymousAttribute>());
     }
 }
