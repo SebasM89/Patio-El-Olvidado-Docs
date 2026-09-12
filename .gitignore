@@ -1,0 +1,23 @@
+# Secretos y entorno local
+.env
+.env.*
+!.env.example
+!.cursor/mcp.env.example
+*.user
+appsettings.*.local.json
+
+# Repos de código (viven aparte; no forman parte de Docs)
+API-Patio-El-Olvidado/
+Patio-El-Olvidado/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vs/
+
+# Build
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/

@@ -1,0 +1,16 @@
+---
+description: Fuente de verdad del producto Patio El Olvidado — consultar docs/ antes de diseñar o codificar
+alwaysApply: true
+---
+
+# Documentación canónica
+
+Antes de proponer arquitectura, código o tests:
+
+1. Consultá `docs/` (empezá por `00-overview.md` y el módulo relevante).
+2. No expandas alcance fuera de `docs/02-alcance.md`.
+3. Reglas de negocio en `docs/08-reglas-negocio.md` son obligatorias.
+4. Entidades y BD deben coherir con `docs/07-entidades.md` y `Script-BD-Patio-El-Olvidado.sql`.
+5. Stack y patrones: `docs/cursor-rules.md` y `AGENTS.md`.
+
+Preferí referenciar rutas de docs; no inventes requisitos no documentados.

@@ -1,0 +1,21 @@
+---
+description: Flujo de ramas dev → pre → main (el agente no despliega a main)
+alwaysApply: true
+---
+
+# Git y promoción de ambientes
+
+Ramas permanentes (nombres reales del remoto):
+
+- `DEV` — testing funcional (integración diaria)
+- `PRE` — homologación (casi producción)
+- `main` — producción; **solo el usuario** despliega/mergea a `main`
+
+Reglas para agentes:
+
+1. Commits y pushes de trabajo diario van hacia `DEV` (vía feature branch + PR, o merge a `DEV`).
+2. Homologar a `PRE` solo tras testing funcional OK en `DEV`.
+3. **Nunca** mergear, pushear ni crear PR hacia `main` salvo pedido explícito del usuario.
+4. Usar el skill `commits-promocion` cuando el usuario pida commit, push o promoción.
+5. Preferir MCP `github` para PRs; MCP `mssql` para validar esquema vs `docs/07-entidades.md`.
+6. Hay **tres repos**: API, Front y `Patio-El-Olvidado-Docs` (docs/agentes). Commitear docs en Docs; código en su repo.

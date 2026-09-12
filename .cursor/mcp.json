@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "mssql": {
+      "command": "npx",
+      "args": ["-y", "mssql-mcp@latest"],
+      "env": {
+        "DB_SERVER": "${env:MSSQL_SERVER}",
+        "DB_PORT": "${env:MSSQL_PORT}",
+        "DB_DATABASE": "${env:MSSQL_DATABASE}",
+        "DB_USER": "${env:MSSQL_USER}",
+        "DB_PASSWORD": "${env:MSSQL_PASSWORD}",
+        "DB_ENCRYPT": "${env:MSSQL_ENCRYPT}",
+        "DB_TRUST_SERVER_CERTIFICATE": "${env:MSSQL_TRUST_SERVER_CERTIFICATE}"
+      }
+    }
+  }
+}

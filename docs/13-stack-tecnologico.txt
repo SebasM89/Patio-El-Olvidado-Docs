@@ -1,0 +1,23 @@
+Frontend:
+- Vue 3
+- TypeScript
+- Vite
+- Vue Router
+- Pinia
+- Axios
+
+Backend:
+- ASP.NET Core 8 Web API
+- Entity Framework Core 8
+- SQL Server
+- JWT
+- FluentValidation
+- AutoMapper
+- Swagger
+
+Arquitectura:
+- Clean Architecture
+- Repository Pattern
+- Service Pattern
+- DTO Pattern
+- Dependency Injection

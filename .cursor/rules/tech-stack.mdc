@@ -1,0 +1,19 @@
+---
+description: Stack, capas y artefactos obligatorios del backend/frontend
+globs: API-Patio-El-Olvidado/**/*,Patio-El-Olvidado/**/*
+alwaysApply: false
+---
+
+# Stack y convenciones
+
+- Frontend: Vue 3 + TypeScript + Vite (`Patio-El-Olvidado/`)
+- Backend: ASP.NET Core 8 (`API-Patio-El-Olvidado/`)
+- Capas: Presentation / Application / Domain / Infrastructure
+- Patrones: Repository, Service, DI, DTO, Unit of Work
+- Seguridad: JWT + BCrypt; validar con FluentValidation
+- Mapear con AutoMapper; documentar API con Swagger
+
+Al agregar un feature de API, generar cuando aplique:
+
+- Entidad, DTOs, interfaz, servicio, repositorio, controlador
+- Validaciones, migración EF (o alineación con script SQL), tests
