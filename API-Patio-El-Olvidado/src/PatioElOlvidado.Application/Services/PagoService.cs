@@ -13,17 +13,20 @@ public class PagoService : IPagoService
     private readonly IPagoRepository _pagos;
     private readonly ICajaRepository _cajas;
     private readonly IPedidoRepository _pedidos;
+    private readonly IClienteRepository _clientes;
     private readonly IUnitOfWork _unitOfWork;
 
     public PagoService(
         IPagoRepository pagos,
         ICajaRepository cajas,
         IPedidoRepository pedidos,
+        IClienteRepository clientes,
         IUnitOfWork unitOfWork)
     {
         _pagos = pagos;
         _cajas = cajas;
         _pedidos = pedidos;
+        _clientes = clientes;
         _unitOfWork = unitOfWork;
     }
 
@@ -76,6 +79,11 @@ public class PagoService : IPagoService
         };
 
         await _pagos.AddAsync(pago, cancellationToken);
+
+        // RN-05: visita ++ una sola vez al pasar a totalmente cobrado
+        var nuevaSuma = sumCompletados + monto;
+        await ContabilizarVisitaSiCorrespondeAsync(pedido, sumCompletados, nuevaSuma, cancellationToken);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Map(pago);
@@ -124,6 +132,35 @@ public class PagoService : IPagoService
         }
 
         return MapCaja(caja);
+    }
+
+    /// <summary>
+    /// Incrementa Cliente.Visitas al completar el cobro; idempotente vía Pedido.VisitaContabilizada.
+    /// Anulación no decrementa visitas (MVP).
+    /// </summary>
+    private async Task ContabilizarVisitaSiCorrespondeAsync(
+        Pedido pedido,
+        decimal sumAntes,
+        decimal sumDespues,
+        CancellationToken cancellationToken)
+    {
+        if (!pedido.ClienteId.HasValue || pedido.VisitaContabilizada)
+            return;
+
+        var estabaCompleto = sumAntes + MontoTolerance >= pedido.Total;
+        var quedaCompleto = sumDespues + MontoTolerance >= pedido.Total;
+        if (estabaCompleto || !quedaCompleto)
+            return;
+
+        var cliente = await _clientes.GetByIdAsync(pedido.ClienteId.Value, cancellationToken);
+        if (cliente is null)
+            return;
+
+        cliente.Visitas += 1;
+        await _clientes.UpdateAsync(cliente, cancellationToken);
+
+        pedido.VisitaContabilizada = true;
+        await _pedidos.UpdateAsync(pedido, cancellationToken);
     }
 
     private async Task<Caja> UpsertCajaIncrementAsync(

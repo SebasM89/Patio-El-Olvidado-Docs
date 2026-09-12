@@ -10,6 +10,7 @@ public interface IPedidoRepository
         PedidoFilterQuery filter,
         int? soloCreadoPorUsuarioId,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Pedido>> ListByClienteIdAsync(int clienteId, CancellationToken cancellationToken = default);
     Task AddAsync(Pedido pedido, CancellationToken cancellationToken = default);
     Task UpdateAsync(Pedido pedido, CancellationToken cancellationToken = default);
     void RemoveDetalles(IEnumerable<DetallePedido> detalles);

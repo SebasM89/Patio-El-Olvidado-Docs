@@ -59,6 +59,24 @@ const router = createRouter({
         roles: ['Admin', 'Empleado'],
       },
     },
+    {
+      path: '/clientes',
+      name: 'clientes',
+      component: () => import('../views/ClientesView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Empleado'],
+      },
+    },
+    {
+      path: '/mi-historial',
+      name: 'mi-historial',
+      component: () => import('../views/MiHistorialView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Cliente'],
+      },
+    },
   ],
 })
 

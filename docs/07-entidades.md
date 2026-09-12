@@ -50,8 +50,13 @@
 - horasTrabajadas
 
 ## Cliente
+- id
+- nombre
 - telefono
-- visitas
+- email (opcional, único si no null)
+- visitas (≥ 0; se incrementa al cobro completo del pedido)
+- usuarioId (opcional, único → Usuarios rol Cliente)
+- activo (soft-delete)
 
 ## Producto
 - id
@@ -68,8 +73,9 @@
 - tipo (Local | ParaLlevar)
 - estado (EnPreparacion | Listo | Entregado | Cancelado)
 - subtotal
-- total
-- clienteId (opcional)
+- total (puede ser menor al subtotal por RN-05 fidelización 10%)
+- clienteId (opcional, FK Clientes ON DELETE SET NULL)
+- visitaContabilizada (idempotencia del ++visitas al cobro)
 - creadoPorUsuarioId
 - fechaCreacion
 

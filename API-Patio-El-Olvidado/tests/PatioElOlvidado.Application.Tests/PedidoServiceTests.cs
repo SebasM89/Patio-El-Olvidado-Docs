@@ -38,6 +38,7 @@ public class PedidoServiceTests
         var service = new PedidoService(
             new PedidoRepository(db),
             new ProductoRepository(db),
+            new ClienteRepository(db),
             new UnitOfWork(db));
         return (service, db, activo, inactivo);
     }
@@ -208,5 +209,100 @@ public class PedidoServiceTests
         Assert.Equal(3000m, updated.Total);
         Assert.Single(updated.Detalles);
         Assert.Equal(3, updated.Detalles[0].Cantidad);
+    }
+
+    [Fact]
+    public async Task Create_ClienteVisitas4_AplicaDescuento10_RN05()
+    {
+        var (service, db, activo, _) = CreateSut();
+        var cliente = new Cliente
+        {
+            Nombre = "Fiel",
+            Telefono = "123",
+            Visitas = 4,
+            Activo = true
+        };
+        db.Clientes.Add(cliente);
+        await db.SaveChangesAsync();
+
+        var created = await service.CreateAsync(new CreatePedidoRequest
+        {
+            Tipo = PedidoTipo.Local,
+            ClienteId = cliente.Id,
+            Detalles = [new DetallePedidoLineRequest { ProductoId = activo.Id, Cantidad = 2 }]
+        }, creadoPorUsuarioId: 1);
+
+        Assert.Equal(2000m, created.Subtotal);
+        Assert.Equal(1800m, created.Total);
+        Assert.Equal(200m, created.DescuentoMonto);
+        Assert.True(created.DescuentoAplicado);
+    }
+
+    [Fact]
+    public async Task Create_ClienteVisitas3_SinDescuento_RN05()
+    {
+        var (service, db, activo, _) = CreateSut();
+        var cliente = new Cliente
+        {
+            Nombre = "Casi",
+            Telefono = "456",
+            Visitas = 3,
+            Activo = true
+        };
+        db.Clientes.Add(cliente);
+        await db.SaveChangesAsync();
+
+        var created = await service.CreateAsync(new CreatePedidoRequest
+        {
+            Tipo = PedidoTipo.Local,
+            ClienteId = cliente.Id,
+            Detalles = [new DetallePedidoLineRequest { ProductoId = activo.Id, Cantidad = 2 }]
+        }, creadoPorUsuarioId: 1);
+
+        Assert.Equal(2000m, created.Subtotal);
+        Assert.Equal(2000m, created.Total);
+        Assert.Equal(0m, created.DescuentoMonto);
+        Assert.False(created.DescuentoAplicado);
+    }
+
+    [Fact]
+    public async Task Create_ClienteIdInexistente_Throws400()
+    {
+        var (service, _, activo, _) = CreateSut();
+
+        var ex = await Assert.ThrowsAsync<AppException>(() =>
+            service.CreateAsync(new CreatePedidoRequest
+            {
+                Tipo = PedidoTipo.Local,
+                ClienteId = 9999,
+                Detalles = [new DetallePedidoLineRequest { ProductoId = activo.Id, Cantidad = 1 }]
+            }, creadoPorUsuarioId: 1));
+
+        Assert.Equal(400, ex.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_ClienteInactivo_Throws400()
+    {
+        var (service, db, activo, _) = CreateSut();
+        var cliente = new Cliente
+        {
+            Nombre = "Baja",
+            Telefono = "789",
+            Visitas = 0,
+            Activo = false
+        };
+        db.Clientes.Add(cliente);
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<AppException>(() =>
+            service.CreateAsync(new CreatePedidoRequest
+            {
+                Tipo = PedidoTipo.Local,
+                ClienteId = cliente.Id,
+                Detalles = [new DetallePedidoLineRequest { ProductoId = activo.Id, Cantidad = 1 }]
+            }, creadoPorUsuarioId: 1));
+
+        Assert.Equal(400, ex.StatusCode);
     }
 }

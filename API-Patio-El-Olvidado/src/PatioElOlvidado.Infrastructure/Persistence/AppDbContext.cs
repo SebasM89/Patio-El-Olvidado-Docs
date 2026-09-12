@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<DetallePedido> DetallePedidos => Set<DetallePedido>();
     public DbSet<Caja> Cajas => Set<Caja>();
     public DbSet<Pago> Pagos => Set<Pago>();
+    public DbSet<Cliente> Clientes => Set<Cliente>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -109,6 +110,28 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => x.Nombre);
         });
 
+        modelBuilder.Entity<Cliente>(entity =>
+        {
+            entity.ToTable("Clientes");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nombre).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Telefono).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Email).HasMaxLength(150);
+            entity.HasIndex(x => x.Email)
+                .IsUnique()
+                .HasFilter("[Email] IS NOT NULL");
+            entity.Property(x => x.Visitas).IsRequired();
+            entity.Property(x => x.Activo).IsRequired();
+            entity.HasIndex(x => x.Telefono);
+            entity.HasIndex(x => x.UsuarioId)
+                .IsUnique()
+                .HasFilter("[UsuarioId] IS NOT NULL");
+            entity.HasOne(x => x.Usuario)
+                .WithMany()
+                .HasForeignKey(x => x.UsuarioId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<Pedido>(entity =>
         {
             entity.ToTable("Pedidos");
@@ -117,13 +140,19 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Estado).HasMaxLength(30).IsRequired();
             entity.Property(x => x.Subtotal).HasPrecision(10, 2).IsRequired();
             entity.Property(x => x.Total).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.VisitaContabilizada).IsRequired();
             entity.Property(x => x.FechaCreacion).IsRequired();
             entity.HasIndex(x => x.Estado);
             entity.HasIndex(x => x.FechaCreacion);
+            entity.HasIndex(x => x.ClienteId);
             entity.HasOne(x => x.CreadoPorUsuario)
                 .WithMany()
                 .HasForeignKey(x => x.CreadoPorUsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Cliente)
+                .WithMany(c => c.Pedidos)
+                .HasForeignKey(x => x.ClienteId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<DetallePedido>(entity =>

@@ -73,14 +73,21 @@ INSERT INTO Roles (Nombre, Descripcion) VALUES
 -- Dominio operativo (legado / MVP futuro)
 -- =========================
 
--- Tabla Clientes
+-- Tabla Clientes (RF-05 / CU05 ù modelo canùnico; reemplaza legado id_cliente)
 CREATE TABLE Clientes (
-    id_cliente INT PRIMARY KEY IDENTITY(1,1),
-    nombre VARCHAR(100),
-    telefono VARCHAR(20),
-    correo VARCHAR(100),
-    direccion VARCHAR(255)
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Nombre NVARCHAR(100) NOT NULL,
+    Telefono NVARCHAR(30) NOT NULL,
+    Email NVARCHAR(150) NULL,
+    Visitas INT NOT NULL CONSTRAINT DF_Clientes_Visitas DEFAULT (0),
+    UsuarioId INT NULL,                       -- opcional: usuario rol Cliente
+    Activo BIT NOT NULL CONSTRAINT DF_Clientes_Activo DEFAULT (1),
+    CONSTRAINT FK_Clientes_Usuarios FOREIGN KEY (UsuarioId) REFERENCES Usuarios(Id) ON DELETE SET NULL,
+    CONSTRAINT CK_Clientes_Visitas CHECK (Visitas >= 0)
 );
+CREATE INDEX IX_Clientes_Telefono ON Clientes(Telefono);
+CREATE UNIQUE INDEX IX_Clientes_Email ON Clientes(Email) WHERE Email IS NOT NULL;
+CREATE UNIQUE INDEX IX_Clientes_UsuarioId ON Clientes(UsuarioId) WHERE UsuarioId IS NOT NULL;
 
 -- Tabla Mesas
 CREATE TABLE Mesas (
@@ -114,21 +121,24 @@ CREATE TABLE Productos (
 CREATE INDEX IX_Productos_Categoria ON Productos(Categoria);
 CREATE INDEX IX_Productos_Nombre ON Productos(Nombre);
 
--- Tabla Pedidos (RF-03 / CU03 ? modelo can?nico)
+-- Tabla Pedidos (RF-03 / CU03 ù modelo canùnico; RF-05 FK Cliente)
 CREATE TABLE Pedidos (
     Id INT PRIMARY KEY IDENTITY(1,1),
     Tipo NVARCHAR(20) NOT NULL,              -- Local | ParaLlevar
     Estado NVARCHAR(30) NOT NULL,            -- EnPreparacion | Listo | Entregado | Cancelado
     Subtotal DECIMAL(10,2) NOT NULL,
     Total DECIMAL(10,2) NOT NULL,
-    ClienteId INT NULL,                      -- sin FK hasta m?dulo Clientes (RF-05)
+    ClienteId INT NULL,
+    VisitaContabilizada BIT NOT NULL CONSTRAINT DF_Pedidos_VisitaContabilizada DEFAULT (0),
     CreadoPorUsuarioId INT NOT NULL,
     FechaCreacion DATETIME2 NOT NULL CONSTRAINT DF_Pedidos_Fecha DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT FK_Pedidos_Usuarios FOREIGN KEY (CreadoPorUsuarioId) REFERENCES Usuarios(Id)
+    CONSTRAINT FK_Pedidos_Usuarios FOREIGN KEY (CreadoPorUsuarioId) REFERENCES Usuarios(Id),
+    CONSTRAINT FK_Pedidos_Clientes FOREIGN KEY (ClienteId) REFERENCES Clientes(Id) ON DELETE SET NULL
 );
 
 CREATE INDEX IX_Pedidos_Estado ON Pedidos(Estado);
 CREATE INDEX IX_Pedidos_FechaCreacion ON Pedidos(FechaCreacion);
+CREATE INDEX IX_Pedidos_ClienteId ON Pedidos(ClienteId);
 
 -- Tabla DetallePedidos
 CREATE TABLE DetallePedidos (
@@ -142,7 +152,7 @@ CREATE TABLE DetallePedidos (
     CONSTRAINT CK_DetallePedidos_Cantidad CHECK (Cantidad > 0)
 );
 
--- Tabla Reservaciones
+-- Tabla Reservaciones (legado MVP futuro; FK a Clientes canùnico)
 CREATE TABLE Reservaciones (
     id_reservacion INT PRIMARY KEY IDENTITY(1,1),
     id_cliente INT,
@@ -151,7 +161,7 @@ CREATE TABLE Reservaciones (
     hora_inicio TIME,
     hora_fin TIME,
     estado VARCHAR(50), -- confirmada, cancelada, finalizada
-    FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente),
+    FOREIGN KEY (id_cliente) REFERENCES Clientes(Id),
     FOREIGN KEY (id_mesa) REFERENCES Mesas(id_mesa)
 );
 
@@ -178,14 +188,16 @@ CREATE TABLE Envios (
     FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
 );
 
--- Tabla HistorialClientes
+-- Tabla HistorialClientes (LEGADO ó no usar en EF)
+-- Fuente de verdad del historial de consumo (CU09) = Pedidos con ClienteId.
+-- Se mantiene solo por compatibilidad de scripts antiguos; no escribir desde la API.
 CREATE TABLE HistorialClientes (
     id_historial INT PRIMARY KEY IDENTITY(1,1),
     id_cliente INT,
     id_pedido INT,
     fecha DATE,
     monto_total DECIMAL(10,2),
-    FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente),
+    FOREIGN KEY (id_cliente) REFERENCES Clientes(Id),
     FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id)
 );
 

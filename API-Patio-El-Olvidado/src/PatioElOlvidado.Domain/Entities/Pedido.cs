@@ -9,11 +9,14 @@ public class Pedido
     public string Estado { get; set; } = string.Empty;
     public decimal Subtotal { get; set; }
     public decimal Total { get; set; }
-    /// <summary>Opcional hasta módulo Clientes (RF-05).</summary>
+    /// <summary>Opcional: pedido anónimo / sin fidelizar.</summary>
     public int? ClienteId { get; set; }
+    /// <summary>True cuando el cobro completo ya incrementó Cliente.Visitas (idempotente).</summary>
+    public bool VisitaContabilizada { get; set; }
     public int CreadoPorUsuarioId { get; set; }
     public DateTime FechaCreacion { get; set; }
 
+    public Cliente? Cliente { get; set; }
     public Usuario CreadoPorUsuario { get; set; } = null!;
     public ICollection<DetallePedido> Detalles { get; set; } = new List<DetallePedido>();
     public ICollection<Pago> Pagos { get; set; } = new List<Pago>();

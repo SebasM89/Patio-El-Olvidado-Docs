@@ -80,6 +80,7 @@ public static class DbSeeder
                         [Subtotal] DECIMAL(10,2) NOT NULL,
                         [Total] DECIMAL(10,2) NOT NULL,
                         [ClienteId] INT NULL,
+                        [VisitaContabilizada] BIT NOT NULL CONSTRAINT [DF_Pedidos_VisitaContabilizada] DEFAULT (0),
                         [CreadoPorUsuarioId] INT NOT NULL,
                         [FechaCreacion] DATETIME2 NOT NULL CONSTRAINT [DF_Pedidos_Fecha] DEFAULT (SYSUTCDATETIME()),
                         CONSTRAINT [PK_Pedidos] PRIMARY KEY ([Id]),
@@ -146,6 +147,74 @@ public static class DbSeeder
                         CONSTRAINT [CK_Pagos_Monto] CHECK ([Monto] > 0)
                     );
                     CREATE INDEX [IX_Pagos_PedidoId] ON [Pagos]([PedidoId]);
+                END
+                """);
+
+            // Clientes canónicos (RF-05) + VisitaContabilizada + FK Pedidos→Clientes
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.Clientes', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Clientes', N'Id') IS NULL
+                BEGIN
+                    IF OBJECT_ID(N'dbo.HistorialClientes', N'U') IS NOT NULL
+                        DROP TABLE [HistorialClientes];
+
+                    IF OBJECT_ID(N'dbo.Reservaciones', N'U') IS NOT NULL
+                        DROP TABLE [Reservaciones];
+
+                    DROP TABLE [Clientes];
+                END
+
+                IF OBJECT_ID(N'dbo.Clientes', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Clientes] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [Nombre] NVARCHAR(100) NOT NULL,
+                        [Telefono] NVARCHAR(30) NOT NULL,
+                        [Email] NVARCHAR(150) NULL,
+                        [Visitas] INT NOT NULL CONSTRAINT [DF_Clientes_Visitas] DEFAULT (0),
+                        [UsuarioId] INT NULL,
+                        [Activo] BIT NOT NULL CONSTRAINT [DF_Clientes_Activo] DEFAULT (1),
+                        CONSTRAINT [PK_Clientes] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_Clientes_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [Usuarios]([Id]) ON DELETE SET NULL,
+                        CONSTRAINT [CK_Clientes_Visitas] CHECK ([Visitas] >= 0)
+                    );
+                    CREATE INDEX [IX_Clientes_Telefono] ON [Clientes]([Telefono]);
+                    CREATE UNIQUE INDEX [IX_Clientes_Email] ON [Clientes]([Email]) WHERE [Email] IS NOT NULL;
+                    CREATE UNIQUE INDEX [IX_Clientes_UsuarioId] ON [Clientes]([UsuarioId]) WHERE [UsuarioId] IS NOT NULL;
+                END
+
+                IF OBJECT_ID(N'dbo.Pedidos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Pedidos', N'VisitaContabilizada') IS NULL
+                BEGIN
+                    ALTER TABLE [Pedidos] ADD [VisitaContabilizada] BIT NOT NULL
+                        CONSTRAINT [DF_Pedidos_VisitaContabilizada] DEFAULT (0);
+                END
+
+                IF OBJECT_ID(N'dbo.Pedidos', N'U') IS NOT NULL
+                   AND OBJECT_ID(N'dbo.Clientes', N'U') IS NOT NULL
+                   AND OBJECT_ID(N'dbo.FK_Pedidos_Clientes', N'F') IS NULL
+                BEGIN
+                    UPDATE [Pedidos]
+                    SET [ClienteId] = NULL
+                    WHERE [ClienteId] IS NOT NULL
+                      AND NOT EXISTS (SELECT 1 FROM [Clientes] c WHERE c.[Id] = [Pedidos].[ClienteId]);
+
+                    ALTER TABLE [Pedidos] WITH CHECK
+                    ADD CONSTRAINT [FK_Pedidos_Clientes]
+                        FOREIGN KEY ([ClienteId]) REFERENCES [Clientes]([Id]) ON DELETE SET NULL;
+
+                    IF NOT EXISTS (
+                        SELECT 1 FROM sys.indexes
+                        WHERE name = N'IX_Pedidos_ClienteId' AND object_id = OBJECT_ID(N'dbo.Pedidos'))
+                        CREATE INDEX [IX_Pedidos_ClienteId] ON [Pedidos]([ClienteId]);
+                END
+
+                -- HistorialClientes legado: no usar en EF; fuente de verdad = Pedidos.ClienteId
+                IF OBJECT_ID(N'dbo.HistorialClientes', N'U') IS NOT NULL
+                   AND COL_LENGTH(N'dbo.HistorialClientes', N'id_cliente') IS NOT NULL
+                   AND COL_LENGTH(N'dbo.Clientes', N'Id') IS NOT NULL
+                   AND COL_LENGTH(N'dbo.Clientes', N'id_cliente') IS NULL
+                BEGIN
+                    -- Esquema Clientes ya canónico: historial legado incompatible → deprecar tabla
+                    DROP TABLE [HistorialClientes];
                 END
                 """);
         }
@@ -231,6 +300,32 @@ public static class DbSeeder
             logger.LogInformation(
                 "Usuario Cliente Development creado: {Email} (para validar ownership de pedidos)",
                 DevClienteEmail);
+        }
+
+        if (env.IsDevelopment() && !await db.Clientes.AnyAsync())
+        {
+            var usuarioCliente = await db.Usuarios.FirstOrDefaultAsync(u => u.Email == DevClienteEmail);
+            db.Clientes.AddRange(
+                new Cliente
+                {
+                    Nombre = "Cliente Dev",
+                    Telefono = "1111111111",
+                    Email = DevClienteEmail,
+                    Visitas = 0,
+                    UsuarioId = usuarioCliente?.Id,
+                    Activo = true
+                },
+                new Cliente
+                {
+                    Nombre = "Walk-in Mostrador",
+                    Telefono = "2222222222",
+                    Email = null,
+                    Visitas = 4,
+                    UsuarioId = null,
+                    Activo = true
+                });
+            await db.SaveChangesAsync();
+            logger.LogInformation("Clientes seed Development aplicados (perfil vinculado + walk-in con Visitas=4 para RN-05)");
         }
 
         if (env.IsDevelopment() && !await db.Productos.AnyAsync())

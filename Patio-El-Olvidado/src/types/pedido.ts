@@ -16,6 +16,8 @@ export interface Pedido {
   estado: PedidoEstado | string
   subtotal: number
   total: number
+  descuentoMonto?: number
+  descuentoAplicado?: boolean
   fechaCreacion: string
   clienteId: number | null
   creadoPorUsuarioId: number

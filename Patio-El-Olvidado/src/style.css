@@ -294,6 +294,16 @@ body {
   color: #44403c;
 }
 
+.descuento-preview {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: #166534;
+}
+
+.ml-tag {
+  margin-left: 0.35rem;
+}
+
 .cobro-panel {
   display: flex;
   flex-direction: column;

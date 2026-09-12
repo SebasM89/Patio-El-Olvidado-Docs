@@ -1,6 +1,7 @@
 using PatioElOlvidado.Application.Common;
 using PatioElOlvidado.Application.DTOs.Pedidos;
 using PatioElOlvidado.Application.Interfaces;
+using PatioElOlvidado.Domain.Constants;
 using PatioElOlvidado.Domain.Entities;
 using PatioElOlvidado.Domain.Enums;
 
@@ -10,15 +11,18 @@ public class PedidoService : IPedidoService
 {
     private readonly IPedidoRepository _pedidos;
     private readonly IProductoRepository _productos;
+    private readonly IClienteRepository _clientes;
     private readonly IUnitOfWork _unitOfWork;
 
     public PedidoService(
         IPedidoRepository pedidos,
         IProductoRepository productos,
+        IClienteRepository clientes,
         IUnitOfWork unitOfWork)
     {
         _pedidos = pedidos;
         _productos = productos;
+        _clientes = clientes;
         _unitOfWork = unitOfWork;
     }
 
@@ -54,8 +58,9 @@ public class PedidoService : IPedidoService
         int creadoPorUsuarioId,
         CancellationToken cancellationToken = default)
     {
+        var cliente = await ResolveClienteActivoAsync(request.ClienteId, cancellationToken);
         var lineas = await BuildDetallesAsync(request.Detalles, cancellationToken);
-        var (subtotal, total) = CalcularTotales(lineas);
+        var (subtotal, total) = CalcularTotales(lineas, cliente?.Visitas);
 
         var pedido = new Pedido
         {
@@ -64,6 +69,7 @@ public class PedidoService : IPedidoService
             Subtotal = subtotal,
             Total = total,
             ClienteId = request.ClienteId,
+            VisitaContabilizada = false,
             CreadoPorUsuarioId = creadoPorUsuarioId,
             FechaCreacion = DateTime.UtcNow,
             Detalles = lineas
@@ -95,8 +101,9 @@ public class PedidoService : IPedidoService
                 "Solo se pueden modificar pedidos en estado EnPreparacion (RN-04).",
                 StatusCodes.Status409Conflict);
 
+        var cliente = await ResolveClienteActivoAsync(request.ClienteId, cancellationToken);
         var nuevasLineas = await BuildDetallesAsync(request.Detalles, cancellationToken);
-        var (subtotal, total) = CalcularTotales(nuevasLineas);
+        var (subtotal, total) = CalcularTotales(nuevasLineas, cliente?.Visitas);
 
         _pedidos.RemoveDetalles(pedido.Detalles.ToList());
         pedido.Detalles.Clear();
@@ -137,6 +144,26 @@ public class PedidoService : IPedidoService
         return Map(pedido);
     }
 
+    private async Task<Cliente?> ResolveClienteActivoAsync(
+        int? clienteId,
+        CancellationToken cancellationToken)
+    {
+        if (!clienteId.HasValue)
+            return null;
+
+        var cliente = await _clientes.GetByIdAsync(clienteId.Value, cancellationToken)
+            ?? throw new AppException(
+                $"Cliente {clienteId.Value} no encontrado.",
+                StatusCodes.Status400BadRequest);
+
+        if (!cliente.Activo)
+            throw new AppException(
+                $"El cliente '{cliente.Nombre}' no está activo.",
+                StatusCodes.Status400BadRequest);
+
+        return cliente;
+    }
+
     private async Task<List<DetallePedido>> BuildDetallesAsync(
         IEnumerable<DetallePedidoLineRequest> lineRequests,
         CancellationToken cancellationToken)
@@ -165,10 +192,21 @@ public class PedidoService : IPedidoService
         return lineas;
     }
 
-    private static (decimal Subtotal, decimal Total) CalcularTotales(IEnumerable<DetallePedido> lineas)
+    /// <summary>RN-05: si Visitas % 5 == 4 → Total = Subtotal × (1 − 10%).</summary>
+    private static (decimal Subtotal, decimal Total) CalcularTotales(
+        IEnumerable<DetallePedido> lineas,
+        int? visitasCliente)
     {
-        var subtotal = lineas.Sum(l => l.Cantidad * l.PrecioUnitario);
-        return (subtotal, subtotal);
+        var subtotal = decimal.Round(
+            lineas.Sum(l => l.Cantidad * l.PrecioUnitario),
+            2,
+            MidpointRounding.AwayFromZero);
+
+        if (!visitasCliente.HasValue)
+            return (subtotal, subtotal);
+
+        var total = FidelizacionRules.CalcularTotal(subtotal, visitasCliente.Value);
+        return (subtotal, total);
     }
 
     private static void EnsureOwnership(Pedido pedido, int usuarioId, string rol)
@@ -215,29 +253,35 @@ public class PedidoService : IPedidoService
     private static bool IsCliente(string rol)
         => string.Equals(rol, RolesSistema.Cliente, StringComparison.Ordinal);
 
-    private static PedidoDto Map(Pedido pedido) => new()
+    private static PedidoDto Map(Pedido pedido)
     {
-        Id = pedido.Id,
-        Tipo = pedido.Tipo,
-        Estado = pedido.Estado,
-        Subtotal = pedido.Subtotal,
-        Total = pedido.Total,
-        FechaCreacion = pedido.FechaCreacion,
-        ClienteId = pedido.ClienteId,
-        CreadoPorUsuarioId = pedido.CreadoPorUsuarioId,
-        Detalles = pedido.Detalles
-            .OrderBy(d => d.Id)
-            .Select(d => new DetallePedidoDto
-            {
-                Id = d.Id,
-                ProductoId = d.ProductoId,
-                ProductoNombre = d.Producto?.Nombre,
-                Cantidad = d.Cantidad,
-                PrecioUnitario = d.PrecioUnitario,
-                Subtotal = d.Cantidad * d.PrecioUnitario
-            })
-            .ToList()
-    };
+        var descuentoMonto = FidelizacionRules.CalcularDescuentoMonto(pedido.Subtotal, pedido.Total);
+        return new PedidoDto
+        {
+            Id = pedido.Id,
+            Tipo = pedido.Tipo,
+            Estado = pedido.Estado,
+            Subtotal = pedido.Subtotal,
+            Total = pedido.Total,
+            DescuentoMonto = descuentoMonto,
+            DescuentoAplicado = descuentoMonto > 0,
+            FechaCreacion = pedido.FechaCreacion,
+            ClienteId = pedido.ClienteId,
+            CreadoPorUsuarioId = pedido.CreadoPorUsuarioId,
+            Detalles = pedido.Detalles
+                .OrderBy(d => d.Id)
+                .Select(d => new DetallePedidoDto
+                {
+                    Id = d.Id,
+                    ProductoId = d.ProductoId,
+                    ProductoNombre = d.Producto?.Nombre,
+                    Cantidad = d.Cantidad,
+                    PrecioUnitario = d.PrecioUnitario,
+                    Subtotal = d.Cantidad * d.PrecioUnitario
+                })
+                .ToList()
+        };
+    }
 
     private static class StatusCodes
     {

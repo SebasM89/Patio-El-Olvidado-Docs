@@ -61,6 +61,18 @@ public class PedidoRepository : IPedidoRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Pedido>> ListByClienteIdAsync(
+        int clienteId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.Pedidos
+            .Include(p => p.Pagos)
+            .Where(p => p.ClienteId == clienteId)
+            .OrderByDescending(p => p.FechaCreacion)
+            .ThenByDescending(p => p.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(Pedido pedido, CancellationToken cancellationToken = default)
     {
         await _db.Pedidos.AddAsync(pedido, cancellationToken);

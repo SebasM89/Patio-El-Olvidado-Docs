@@ -33,6 +33,7 @@ public class PagoServiceTests
         var pedidoService = new PedidoService(
             new PedidoRepository(db),
             new ProductoRepository(db),
+            new ClienteRepository(db),
             new UnitOfWork(db));
 
         var created = await pedidoService.CreateAsync(new CreatePedidoRequest
@@ -53,6 +54,7 @@ public class PagoServiceTests
             new PagoRepository(db),
             new CajaRepository(db),
             new PedidoRepository(db),
+            new ClienteRepository(db),
             new UnitOfWork(db));
 
         return (pagoService, pedidoService, db, producto, pedido);
@@ -158,6 +160,7 @@ public class PagoServiceTests
         var pedidoService = new PedidoService(
             new PedidoRepository(db),
             new ProductoRepository(db),
+            new ClienteRepository(db),
             new UnitOfWork(db));
         var created = await pedidoService.CreateAsync(new CreatePedidoRequest
         {
@@ -169,6 +172,7 @@ public class PagoServiceTests
             new PagoRepository(db),
             new CajaRepository(db),
             new PedidoRepository(db),
+            new ClienteRepository(db),
             new UnitOfWork(db));
 
         var ex = await Assert.ThrowsAsync<AppException>(() =>
@@ -220,5 +224,76 @@ public class PagoServiceTests
 
         Assert.Equal(PagoEstado.Completado, pago.Estado);
         Assert.Equal(1000m, pago.Monto);
+    }
+
+    [Fact]
+    public async Task Create_CobroCompleto_IncrementaVisitasUnaVez_RN05()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        var db = new AppDbContext(options);
+
+        var producto = new Producto
+        {
+            Nombre = "Empanada",
+            Precio = 1000m,
+            Categoria = "Entradas",
+            Activo = true
+        };
+        var cliente = new Cliente
+        {
+            Nombre = "Visitante",
+            Telefono = "555",
+            Visitas = 2,
+            Activo = true
+        };
+        db.Productos.Add(producto);
+        db.Clientes.Add(cliente);
+        await db.SaveChangesAsync();
+
+        var pedidos = new PedidoService(
+            new PedidoRepository(db),
+            new ProductoRepository(db),
+            new ClienteRepository(db),
+            new UnitOfWork(db));
+        var pagos = new PagoService(
+            new PagoRepository(db),
+            new CajaRepository(db),
+            new PedidoRepository(db),
+            new ClienteRepository(db),
+            new UnitOfWork(db));
+
+        var created = await pedidos.CreateAsync(new CreatePedidoRequest
+        {
+            Tipo = PedidoTipo.Local,
+            ClienteId = cliente.Id,
+            Detalles = [new DetallePedidoLineRequest { ProductoId = producto.Id, Cantidad = 2 }]
+        }, 1);
+        await pedidos.CambiarEstadoAsync(
+            created.Id,
+            new CambiarEstadoPedidoRequest { Estado = PedidoEstado.Listo },
+            1,
+            RolesSistema.Admin);
+
+        await pagos.CreateAsync(new CreatePagoRequest
+        {
+            PedidoId = created.Id,
+            Metodo = PagoMetodo.Efectivo,
+            Monto = 800m
+        });
+        Assert.Equal(2, (await db.Clientes.FirstAsync(c => c.Id == cliente.Id)).Visitas);
+
+        await pagos.CreateAsync(new CreatePagoRequest
+        {
+            PedidoId = created.Id,
+            Metodo = PagoMetodo.Tarjeta,
+            Monto = 1200m
+        });
+
+        var updatedCliente = await db.Clientes.FirstAsync(c => c.Id == cliente.Id);
+        var pedido = await db.Pedidos.FirstAsync(p => p.Id == created.Id);
+        Assert.Equal(3, updatedCliente.Visitas);
+        Assert.True(pedido.VisitaContabilizada);
     }
 }

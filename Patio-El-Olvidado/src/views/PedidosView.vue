@@ -4,9 +4,11 @@ import { useAuthStore } from '../stores/auth'
 import { pedidoService } from '../services/pedidoService'
 import { productoService } from '../services/productoService'
 import { pagoService } from '../services/pagoService'
+import { clienteService } from '../services/clienteService'
 import type { Pedido, PedidoPayload, PedidoTipo } from '../types/pedido'
 import type { Producto } from '../types/producto'
 import type { Pago, PagoMetodo } from '../types/pago'
+import type { Cliente } from '../types/cliente'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
@@ -23,6 +25,7 @@ const isCliente = computed(() => auth.rol === 'Cliente')
 
 const pedidos = ref<Pedido[]>([])
 const productos = ref<Producto[]>([])
+const clientes = ref<Cliente[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const success = ref<string | null>(null)
@@ -36,9 +39,11 @@ const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const form = reactive<{
   tipo: PedidoTipo
+  clienteId: number | null
   lineas: { productoId: number | null; cantidad: number }[]
 }>({
   tipo: 'Local',
+  clienteId: null,
   lineas: [{ productoId: null, cantidad: 1 }],
 })
 
@@ -79,6 +84,29 @@ const formSubtotal = computed(() =>
     return acc + p.precio * (line.cantidad || 0)
   }, 0),
 )
+
+const clienteSeleccionado = computed(() =>
+  form.clienteId == null ? null : clientes.value.find((c) => c.id === form.clienteId) ?? null,
+)
+
+/** Preview RN-05: Visitas % 5 == 4 → 10% */
+const formDescuentoPreview = computed(() => {
+  const c = clienteSeleccionado.value
+  if (!c || c.visitas % 5 !== 4) return 0
+  return Number((formSubtotal.value * 0.1).toFixed(2))
+})
+
+const formTotalPreview = computed(() =>
+  Number((formSubtotal.value - formDescuentoPreview.value).toFixed(2)),
+)
+
+const clienteOptions = computed(() => [
+  { label: 'Sin cliente (anónimo)', value: null as number | null },
+  ...clientes.value.map((c) => ({
+    label: `${c.nombre} · ${c.telefono} (${c.visitas} visitas)`,
+    value: c.id as number | null,
+  })),
+])
 
 const cobroPagado = computed(() =>
   cobroPagos.value
@@ -126,6 +154,16 @@ async function loadProductos() {
   productos.value = data
 }
 
+async function loadClientes() {
+  if (!isStaff.value) return
+  try {
+    const { data } = await clienteService.list({ activo: true })
+    clientes.value = data
+  } catch {
+    /* selector opcional */
+  }
+}
+
 async function load() {
   loading.value = true
   error.value = null
@@ -147,6 +185,7 @@ async function load() {
 function openCreate() {
   editingId.value = null
   form.tipo = 'Local'
+  form.clienteId = null
   form.lineas = [{ productoId: null, cantidad: 1 }]
   dialogVisible.value = true
 }
@@ -155,6 +194,7 @@ function openEdit(p: Pedido) {
   if (p.estado !== 'EnPreparacion') return
   editingId.value = p.id
   form.tipo = (p.tipo as PedidoTipo) || 'Local'
+  form.clienteId = p.clienteId
   form.lineas = p.detalles.map((d) => ({
     productoId: d.productoId,
     cantidad: d.cantidad,
@@ -179,7 +219,7 @@ function buildPayload(): PedidoPayload | null {
     error.value = 'Agregá al menos un producto.'
     return null
   }
-  return { tipo: form.tipo, clienteId: null, detalles }
+  return { tipo: form.tipo, clienteId: form.clienteId, detalles }
 }
 
 async function save() {
@@ -338,6 +378,7 @@ onMounted(async () => {
   } catch {
     /* listado de productos puede fallar; el alta lo mostrará */
   }
+  await loadClientes()
   await load()
 })
 </script>
@@ -352,6 +393,7 @@ onMounted(async () => {
       <div class="header-actions">
         <RouterLink to="/dashboard" class="back-link">← Dashboard</RouterLink>
         <RouterLink v-if="isStaff" to="/caja" class="back-link">Caja del día</RouterLink>
+        <RouterLink v-if="isStaff" to="/clientes" class="back-link">Clientes</RouterLink>
         <Button label="Nuevo pedido" icon="pi pi-plus" @click="openCreate" />
       </div>
     </header>
@@ -402,7 +444,15 @@ onMounted(async () => {
         </template>
       </Column>
       <Column header="Total">
-        <template #body="{ data }">{{ money(data.total) }}</template>
+        <template #body="{ data }">
+          <span>{{ money(data.total) }}</span>
+          <Tag
+            v-if="data.descuentoMonto && data.descuentoMonto > 0"
+            class="ml-tag"
+            :value="`−${money(data.descuentoMonto)}`"
+            severity="success"
+          />
+        </template>
       </Column>
       <Column header="Fecha">
         <template #body="{ data }">
@@ -489,6 +539,25 @@ onMounted(async () => {
           class="w-full"
         />
 
+        <template v-if="isStaff">
+          <label for="clientePedido">Cliente (fidelización)</label>
+          <Select
+            id="clientePedido"
+            v-model="form.clienteId"
+            :options="clienteOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            filter
+            show-clear
+            placeholder="Sin cliente"
+          />
+          <p v-if="formDescuentoPreview > 0" class="descuento-preview">
+            RN-05: descuento 10% estimado −{{ money(formDescuentoPreview) }} → total
+            {{ money(formTotalPreview) }}
+          </p>
+        </template>
+
         <div class="lineas-editor">
           <div v-for="(line, idx) in form.lineas" :key="idx" class="linea-row">
             <Select
@@ -515,6 +584,9 @@ onMounted(async () => {
         </div>
 
         <p class="subtotal-preview"><strong>Subtotal estimado:</strong> {{ money(formSubtotal) }}</p>
+        <p v-if="formDescuentoPreview > 0" class="subtotal-preview">
+          <strong>Total estimado (con descuento):</strong> {{ money(formTotalPreview) }}
+        </p>
 
         <div class="form-actions">
           <Button type="button" label="Cancelar" severity="secondary" text @click="dialogVisible = false" />

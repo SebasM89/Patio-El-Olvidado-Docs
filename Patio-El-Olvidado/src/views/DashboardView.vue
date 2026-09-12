@@ -65,6 +65,18 @@ async function onLogout() {
           <span class="nav-title">Caja del día</span>
           <span class="nav-desc">Totales por método (RN-08)</span>
         </RouterLink>
+        <RouterLink
+          v-if="auth.rol === 'Admin' || auth.rol === 'Empleado'"
+          to="/clientes"
+          class="nav-card"
+        >
+          <span class="nav-title">Clientes</span>
+          <span class="nav-desc">Registro, historial y fidelización (RF-05)</span>
+        </RouterLink>
+        <RouterLink v-if="auth.rol === 'Cliente'" to="/mi-historial" class="nav-card">
+          <span class="nav-title">Mi historial</span>
+          <span class="nav-desc">Consultá tus consumos y visitas (CU09)</span>
+        </RouterLink>
       </nav>
 
       <p class="hint">Módulos disponibles según rol (MVP).</p>
