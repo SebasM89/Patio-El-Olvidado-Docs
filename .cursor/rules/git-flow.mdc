@@ -16,6 +16,7 @@ Reglas para agentes:
 1. Commits y pushes de trabajo diario van hacia `DEV` (vía feature branch + PR, o merge a `DEV`).
 2. Homologar a `PRE` solo tras testing funcional OK en `DEV`.
 3. **Nunca** mergear, pushear ni crear PR hacia `main` salvo pedido explícito del usuario.
-4. Usar el skill `commits-promocion` cuando el usuario pida commit, push o promoción.
+4. Usar el skill `commits-promocion` **solo cuando el usuario autorice** publicar en `DEV` (o promover).
 5. Preferir MCP `github` para PRs; MCP `mssql` para validar esquema vs `docs/07-entidades.md`.
 6. Este es un **monorepo** (`Patio-El-Olvidado-Docs`): docs, API y front en el mismo repo.
+7. Ciclo de features: autónomo hasta el tester; **no** commit/push sin OK del usuario (ver `autonomia-ciclo.mdc`).

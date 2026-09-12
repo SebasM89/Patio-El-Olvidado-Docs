@@ -1,0 +1,20 @@
+---
+description: Autonomía del ciclo arquitecto→desarrollador→tester; solo pedir OK para push a DEV
+alwaysApply: true
+---
+
+# Autonomía de desarrollo
+
+Cuando el usuario pida continuar el desarrollo / siguiente módulo / seguir el flujo de agentes:
+
+1. Ejecutar **sin pedir confirmación intermedia**:
+   - Arquitecto prioriza y planifica
+   - Desarrollador implementa
+   - Tester verifica con evidencia
+2. Al terminar el ciclo, **informar** veredicto + resumen breve.
+3. **Única puerta de aprobación del usuario:** commit/push a `DEV` (y cualquier cosa hacia `PRE`/`main`).
+   - Preguntar explícitamente: “¿Lo subo a DEV?”
+   - No hacer `git commit` / `git push` hasta que el usuario diga que sí.
+4. No pedir OK para: elegir módulo, implementar, correr builds/tests, fixes menores que el tester marque como no bloqueantes si el desarrollador puede cerrarlos en el mismo ciclo.
+5. Si el tester da **RECHAZADO**, el desarrollador corrige y se re-testea **sin** preguntar; solo se frena en el push a `DEV`.
+6. Excepciones que sí requieren preguntar: borrar datos, cambiar secretos, tocar `main`/`PRE`, ampliar alcance fuera de `docs/02-alcance.md`.

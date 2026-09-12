@@ -5,7 +5,7 @@ USE ElOlvidado;
 GO
 
 -- =========================
--- Autenticaciùn (MVP)
+-- Autenticaci?n (MVP)
 -- =========================
 
 CREATE TABLE Roles (
@@ -114,26 +114,32 @@ CREATE TABLE Productos (
 CREATE INDEX IX_Productos_Categoria ON Productos(Categoria);
 CREATE INDEX IX_Productos_Nombre ON Productos(Nombre);
 
--- Tabla Pedidos
+-- Tabla Pedidos (RF-03 / CU03 ? modelo can?nico)
 CREATE TABLE Pedidos (
-    id_pedido INT PRIMARY KEY IDENTITY(1,1),
-    id_cliente INT,
-    fecha_pedido DATE,
-    hora TIME,
-    estado VARCHAR(50), -- en preparaciùn, enviado, entregado, cancelado
-    tipo VARCHAR(20),   -- en local, delivery
-    FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente)
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Tipo NVARCHAR(20) NOT NULL,              -- Local | ParaLlevar
+    Estado NVARCHAR(30) NOT NULL,            -- EnPreparacion | Listo | Entregado | Cancelado
+    Subtotal DECIMAL(10,2) NOT NULL,
+    Total DECIMAL(10,2) NOT NULL,
+    ClienteId INT NULL,                      -- sin FK hasta m?dulo Clientes (RF-05)
+    CreadoPorUsuarioId INT NOT NULL,
+    FechaCreacion DATETIME2 NOT NULL CONSTRAINT DF_Pedidos_Fecha DEFAULT (SYSUTCDATETIME()),
+    CONSTRAINT FK_Pedidos_Usuarios FOREIGN KEY (CreadoPorUsuarioId) REFERENCES Usuarios(Id)
 );
+
+CREATE INDEX IX_Pedidos_Estado ON Pedidos(Estado);
+CREATE INDEX IX_Pedidos_FechaCreacion ON Pedidos(FechaCreacion);
 
 -- Tabla DetallePedidos
 CREATE TABLE DetallePedidos (
-    id_detalle INT PRIMARY KEY IDENTITY(1,1),
-    id_pedido INT,
-    id_producto INT,
-    cantidad INT,
-    subtotal DECIMAL(10,2),
-    FOREIGN KEY (id_pedido) REFERENCES Pedidos(id_pedido),
-    FOREIGN KEY (id_producto) REFERENCES Productos(Id)
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    PedidoId INT NOT NULL,
+    ProductoId INT NOT NULL,
+    Cantidad INT NOT NULL,
+    PrecioUnitario DECIMAL(10,2) NOT NULL,
+    CONSTRAINT FK_DetallePedidos_Pedidos FOREIGN KEY (PedidoId) REFERENCES Pedidos(Id) ON DELETE CASCADE,
+    CONSTRAINT FK_DetallePedidos_Productos FOREIGN KEY (ProductoId) REFERENCES Productos(Id),
+    CONSTRAINT CK_DetallePedidos_Cantidad CHECK (Cantidad > 0)
 );
 
 -- Tabla Reservaciones
@@ -168,7 +174,7 @@ CREATE TABLE Envios (
     hora_envio TIME,
     id_empleado INT, -- repartidor
     estado BIT, -- 1 en camino, 0 entregado
-    FOREIGN KEY (id_pedido) REFERENCES Pedidos(id_pedido),
+    FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id),
     FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
 );
 
@@ -180,13 +186,13 @@ CREATE TABLE HistorialClientes (
     fecha DATE,
     monto_total DECIMAL(10,2),
     FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente),
-    FOREIGN KEY (id_pedido) REFERENCES Pedidos(id_pedido)
+    FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id)
 );
 
 -- Tabla Caja
 CREATE TABLE Caja (
     id_caja INT PRIMARY KEY IDENTITY(1,1),
-    fecha DATE UNIQUE, -- una fila por dùa
+    fecha DATE UNIQUE, -- una fila por d?a
     total_efectivo DECIMAL(10,2),
     total_tarjeta DECIMAL(10,2),
     total_transferencia DECIMAL(10,2)
@@ -202,6 +208,6 @@ CREATE TABLE Pagos (
     fecha_pago DATE,
     hora_pago TIME,
     id_caja INT,
-    FOREIGN KEY (id_pedido) REFERENCES Pedidos(id_pedido),
+    FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id),
     FOREIGN KEY (id_caja) REFERENCES Caja(id_caja)
 );

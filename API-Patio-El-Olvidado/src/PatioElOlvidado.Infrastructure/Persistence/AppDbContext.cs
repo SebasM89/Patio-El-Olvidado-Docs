@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<Pedido> Pedidos => Set<Pedido>();
+    public DbSet<DetallePedido> DetallePedidos => Set<DetallePedido>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,6 +105,39 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Activo).IsRequired();
             entity.HasIndex(x => x.Categoria);
             entity.HasIndex(x => x.Nombre);
+        });
+
+        modelBuilder.Entity<Pedido>(entity =>
+        {
+            entity.ToTable("Pedidos");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Tipo).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Estado).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Subtotal).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.Total).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.FechaCreacion).IsRequired();
+            entity.HasIndex(x => x.Estado);
+            entity.HasIndex(x => x.FechaCreacion);
+            entity.HasOne(x => x.CreadoPorUsuario)
+                .WithMany()
+                .HasForeignKey(x => x.CreadoPorUsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DetallePedido>(entity =>
+        {
+            entity.ToTable("DetallePedidos");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Cantidad).IsRequired();
+            entity.Property(x => x.PrecioUnitario).HasPrecision(10, 2).IsRequired();
+            entity.HasOne(x => x.Pedido)
+                .WithMany(x => x.Detalles)
+                .HasForeignKey(x => x.PedidoId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Producto)
+                .WithMany()
+                .HasForeignKey(x => x.ProductoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

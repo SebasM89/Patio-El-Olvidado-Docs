@@ -263,3 +263,33 @@ body {
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
+
+.lineas-mini {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: #57534e;
+}
+
+.lineas-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.linea-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.linea-row .qty {
+  width: 7.5rem;
+}
+
+.subtotal-preview {
+  margin: 0.5rem 0 0;
+  color: #44403c;
+}

@@ -47,6 +47,16 @@ async function onLogout() {
           <span class="nav-title">Gestión de menú</span>
           <span class="nav-desc">Ver catálogo{{ auth.rol === 'Admin' ? ' y administrar productos' : '' }}</span>
         </RouterLink>
+        <RouterLink to="/pedidos" class="nav-card">
+          <span class="nav-title">Pedidos</span>
+          <span class="nav-desc">
+            {{
+              auth.rol === 'Cliente'
+                ? 'Crear y seguir tus pedidos'
+                : 'Gestionar pedidos local / para llevar'
+            }}
+          </span>
+        </RouterLink>
       </nav>
 
       <p class="hint">Módulos disponibles según rol (MVP).</p>

@@ -61,17 +61,24 @@
 - categoria
 - imagen
 - etiquetas
+- activo
 
 ## Pedido
 - id
-- tipo
-- estado
+- tipo (Local | ParaLlevar)
+- estado (EnPreparacion | Listo | Entregado | Cancelado)
 - subtotal
 - total
+- clienteId (opcional)
+- creadoPorUsuarioId
+- fechaCreacion
 
 ## DetallePedido
+- id
+- pedidoId
+- productoId
 - cantidad
-- precioUnitario
+- precioUnitario (snapshot)
 
 ## Pago
 - metodo

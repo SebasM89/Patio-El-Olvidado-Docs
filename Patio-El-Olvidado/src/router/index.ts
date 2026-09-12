@@ -41,6 +41,15 @@ const router = createRouter({
         roles: ['Admin', 'Empleado', 'Cliente'],
       },
     },
+    {
+      path: '/pedidos',
+      name: 'pedidos',
+      component: () => import('../views/PedidosView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Empleado', 'Cliente'],
+      },
+    },
   ],
 })
 
