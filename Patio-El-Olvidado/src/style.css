@@ -97,3 +97,169 @@ body {
   color: #78716c;
   font-size: 0.9rem;
 }
+
+.dashboard-nav {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.nav-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  background: #fafaf9;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.nav-card:hover {
+  border-color: #a8a29e;
+  background: #fff;
+}
+
+.nav-title {
+  font-weight: 650;
+}
+
+.nav-desc {
+  font-size: 0.875rem;
+  color: #78716c;
+}
+
+.menu-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.menu-header h1 {
+  margin: 0 0 0.25rem;
+}
+
+.menu-header p {
+  margin: 0;
+  color: #57534e;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.back-link {
+  color: #44403c;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  margin: 1rem 0 1.25rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.filter-field.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.35rem;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.menu-table {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.product-cell {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.thumb {
+  width: 56px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #e7e5e4;
+}
+
+.desc {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: #78716c;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.product-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

@@ -1,6 +1,6 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PatioElOlvidado.Application.Common;
 using PatioElOlvidado.Application.DTOs.Auth;
 using PatioElOlvidado.Application.Interfaces;
 
@@ -8,6 +8,7 @@ namespace PatioElOlvidado.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[AllowAnonymous]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;

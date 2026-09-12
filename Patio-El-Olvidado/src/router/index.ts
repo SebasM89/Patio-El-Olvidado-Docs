@@ -32,6 +32,15 @@ const router = createRouter({
       component: () => import('../views/DashboardView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/menu',
+      name: 'menu',
+      component: () => import('../views/MenuView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Empleado', 'Cliente'],
+      },
+    },
   ],
 })
 
@@ -47,6 +56,11 @@ router.beforeEach((to) => {
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  const roles = to.meta.roles as string[] | undefined
+  if (roles?.length && auth.rol && !roles.includes(auth.rol)) {
+    return { name: 'dashboard' }
   }
 
   return true

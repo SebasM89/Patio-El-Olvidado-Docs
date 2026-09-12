@@ -13,6 +13,8 @@ public static class DbSeeder
 {
     public const string DevAdminEmail = "admin@patioelolvidado.local";
     public const string DevAdminPassword = "Admin123!";
+    public const string DevEmpleadoEmail = "empleado@patioelolvidado.local";
+    public const string DevEmpleadoPassword = "Empleado123!";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -24,6 +26,29 @@ public static class DbSeeder
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
         await db.Database.EnsureCreatedAsync();
+
+        // EnsureCreated no altera BD ya existente: crear Productos si falta (evolución desde Auth-only)
+        if (db.Database.IsSqlServer())
+        {
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.Productos', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Productos] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [Nombre] NVARCHAR(100) NOT NULL,
+                        [Descripcion] NVARCHAR(500) NULL,
+                        [Precio] DECIMAL(10,2) NOT NULL,
+                        [Categoria] NVARCHAR(50) NOT NULL,
+                        [Imagen] NVARCHAR(500) NULL,
+                        [Etiquetas] NVARCHAR(300) NULL,
+                        [Activo] BIT NOT NULL CONSTRAINT [DF_Productos_Activo] DEFAULT (1),
+                        CONSTRAINT [PK_Productos] PRIMARY KEY ([Id])
+                    );
+                    CREATE INDEX [IX_Productos_Categoria] ON [Productos]([Categoria]);
+                    CREATE INDEX [IX_Productos_Nombre] ON [Productos]([Nombre]);
+                END
+                """);
+        }
 
         if (!await db.Roles.AnyAsync())
         {
@@ -72,6 +97,60 @@ public static class DbSeeder
             logger.LogInformation(
                 "Usuario Admin Development creado: {Email} / password documentado en appsettings.Development.json",
                 adminEmail);
+        }
+
+        if (env.IsDevelopment() && !await db.Usuarios.AnyAsync(u => u.Email == DevEmpleadoEmail))
+        {
+            var empleadoRol = await db.Roles.FirstAsync(r => r.Nombre == RolesSistema.Empleado);
+            db.Usuarios.Add(new Usuario
+            {
+                Nombre = "Empleado Dev",
+                Email = DevEmpleadoEmail,
+                PasswordHash = hasher.Hash(DevEmpleadoPassword),
+                RolId = empleadoRol.Id,
+                Estado = UsuarioEstado.Activo
+            });
+            await db.SaveChangesAsync();
+            logger.LogInformation(
+                "Usuario Empleado Development creado: {Email} (para validar RN-03)",
+                DevEmpleadoEmail);
+        }
+
+        if (env.IsDevelopment() && !await db.Productos.AnyAsync())
+        {
+            db.Productos.AddRange(
+                new Producto
+                {
+                    Nombre = "Empanada de carne",
+                    Descripcion = "Empanada criolla al horno",
+                    Precio = 1200m,
+                    Categoria = "Entradas",
+                    Imagen = "https://placehold.co/400x300?text=Empanada",
+                    Etiquetas = "clasico,horno",
+                    Activo = true
+                },
+                new Producto
+                {
+                    Nombre = "Milanesa napolitana",
+                    Descripcion = "Con papas fritas",
+                    Precio = 8500m,
+                    Categoria = "Platos",
+                    Imagen = "https://placehold.co/400x300?text=Milanesa",
+                    Etiquetas = "clasico",
+                    Activo = true
+                },
+                new Producto
+                {
+                    Nombre = "Limonada",
+                    Descripcion = "Natural con menta",
+                    Precio = 2500m,
+                    Categoria = "Bebidas",
+                    Imagen = "https://placehold.co/400x300?text=Limonada",
+                    Etiquetas = "fresco,sin alcohol",
+                    Activo = true
+                });
+            await db.SaveChangesAsync();
+            logger.LogInformation("Productos seed Development aplicados (3 ítems)");
         }
     }
 }

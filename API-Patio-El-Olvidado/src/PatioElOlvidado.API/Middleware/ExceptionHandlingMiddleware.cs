@@ -27,6 +27,13 @@ public class ExceptionHandlingMiddleware
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new { message = ex.Message });
         }
+        catch (AppException ex)
+        {
+            _logger.LogWarning(ex, "App error: {Message}", ex.Message);
+            context.Response.StatusCode = ex.StatusCode;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+        }
         catch (ValidationException ex)
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;

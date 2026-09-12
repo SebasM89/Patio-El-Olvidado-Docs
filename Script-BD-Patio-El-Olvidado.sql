@@ -5,7 +5,7 @@ USE ElOlvidado;
 GO
 
 -- =========================
--- AutenticaciÛn (MVP)
+-- Autenticaciùn (MVP)
 -- =========================
 
 CREATE TABLE Roles (
@@ -99,14 +99,20 @@ CREATE TABLE Empleados (
     telefono VARCHAR(20)
 );
 
--- Tabla Menus
-CREATE TABLE Menus (
-    id_producto INT PRIMARY KEY IDENTITY(1,1),
-    nombre VARCHAR(100),
-    descripcion TEXT,
-    precio DECIMAL(10,2),
-    es_promocion BIT
+-- Tabla Productos (RF-02 / CU02 - reemplaza legado Menus)
+CREATE TABLE Productos (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Nombre NVARCHAR(100) NOT NULL,
+    Descripcion NVARCHAR(500) NULL,
+    Precio DECIMAL(10,2) NOT NULL,
+    Categoria NVARCHAR(50) NOT NULL,
+    Imagen NVARCHAR(500) NULL,
+    Etiquetas NVARCHAR(300) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Productos_Activo DEFAULT (1)
 );
+
+CREATE INDEX IX_Productos_Categoria ON Productos(Categoria);
+CREATE INDEX IX_Productos_Nombre ON Productos(Nombre);
 
 -- Tabla Pedidos
 CREATE TABLE Pedidos (
@@ -114,7 +120,7 @@ CREATE TABLE Pedidos (
     id_cliente INT,
     fecha_pedido DATE,
     hora TIME,
-    estado VARCHAR(50), -- en preparaciÛn, enviado, entregado, cancelado
+    estado VARCHAR(50), -- en preparaciùn, enviado, entregado, cancelado
     tipo VARCHAR(20),   -- en local, delivery
     FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente)
 );
@@ -127,7 +133,7 @@ CREATE TABLE DetallePedidos (
     cantidad INT,
     subtotal DECIMAL(10,2),
     FOREIGN KEY (id_pedido) REFERENCES Pedidos(id_pedido),
-    FOREIGN KEY (id_producto) REFERENCES Menus(id_producto)
+    FOREIGN KEY (id_producto) REFERENCES Productos(Id)
 );
 
 -- Tabla Reservaciones
@@ -180,7 +186,7 @@ CREATE TABLE HistorialClientes (
 -- Tabla Caja
 CREATE TABLE Caja (
     id_caja INT PRIMARY KEY IDENTITY(1,1),
-    fecha DATE UNIQUE, -- una fila por dÌa
+    fecha DATE UNIQUE, -- una fila por dùa
     total_efectivo DECIMAL(10,2),
     total_tarjeta DECIMAL(10,2),
     total_transferencia DECIMAL(10,2)

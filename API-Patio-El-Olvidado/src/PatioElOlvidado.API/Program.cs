@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PatioElOlvidado.Application;
@@ -18,7 +20,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Patio El Olvidado API",
         Version = "v1",
-        Description = "API del sistema integral — módulo Autenticación MVP"
+        Description = "API del sistema integral — Auth + Gestión de Menú (RF-02)"
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -61,11 +63,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwt.Issuer,
             ValidAudience = jwt.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+            RoleClaimType = ClaimTypes.Role,
             ClockSkew = TimeSpan.FromSeconds(30)
         };
     });
 
-builder.Services.AddAuthorization();
+// RN-01: autenticación requerida por defecto; endpoints públicos usan [AllowAnonymous]
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 builder.Services.AddCors(options =>
 {

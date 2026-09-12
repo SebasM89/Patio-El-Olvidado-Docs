@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<RolPermiso> RolPermisos => Set<RolPermiso>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<Producto> Productos => Set<Producto>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -87,6 +88,21 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.PasswordResetTokens)
                 .HasForeignKey(x => x.UsuarioId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Producto>(entity =>
+        {
+            entity.ToTable("Productos");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nombre).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Descripcion).HasMaxLength(500);
+            entity.Property(x => x.Precio).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.Categoria).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Imagen).HasMaxLength(500);
+            entity.Property(x => x.Etiquetas).HasMaxLength(300);
+            entity.Property(x => x.Activo).IsRequired();
+            entity.HasIndex(x => x.Categoria);
+            entity.HasIndex(x => x.Nombre);
         });
     }
 }

@@ -41,7 +41,15 @@ async function onLogout() {
       <p><strong>Usuario:</strong> {{ auth.usuario?.nombre }}</p>
       <p><strong>Email:</strong> {{ auth.usuario?.email }}</p>
       <p><strong>Rol:</strong> {{ rolLabel }}</p>
-      <p class="hint">Este dashboard es un placeholder por rol (MVP Autenticación).</p>
+
+      <nav class="dashboard-nav">
+        <RouterLink to="/menu" class="nav-card">
+          <span class="nav-title">Gestión de menú</span>
+          <span class="nav-desc">Ver catálogo{{ auth.rol === 'Admin' ? ' y administrar productos' : '' }}</span>
+        </RouterLink>
+      </nav>
+
+      <p class="hint">Módulos disponibles según rol (MVP).</p>
     </section>
   </div>
 </template>
