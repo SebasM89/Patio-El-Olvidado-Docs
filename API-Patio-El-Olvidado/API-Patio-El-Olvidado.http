@@ -1,0 +1,6 @@
+@API_Patio_El_Olvidado_HostAddress = http://localhost:5157
+
+GET {{API_Patio_El_Olvidado_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -39,7 +39,7 @@ Implementar el mínimo necesario según el plan del Arquitecto y la documentaci�
 - Preferí MCP `github` para PRs hacia `DEV`
 - Preferí MCP `mssql` para validar columnas/tablas antes de migraciones
 - Nunca publicar a `main`
-- Commitear en el repo correcto (API o Front)
+- Monorepo: cambios de API y front van en el mismo repo
 
 ## Límites
 

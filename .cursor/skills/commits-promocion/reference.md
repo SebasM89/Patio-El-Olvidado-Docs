@@ -14,13 +14,11 @@ feature/* ──PR──► DEV (testing funcional)
                    main (producción)
 ```
 
-Repos separados (estado actual):
+Repo monorepo:
 
-- `github.com/SebasM89/API-Patio-El-Olvidado`
-- `github.com/SebasM89/Patio-El-Olvidado`
-- `github.com/SebasM89/Patio-El-Olvidado-Docs` (docs, agentes, script SQL)
+- `github.com/SebasM89/Patio-El-Olvidado-Docs` (docs, agentes, API, front, script SQL)
 
-La carpeta local `Proyecto-Final/` agrupa API + front + docs; este repo Docs ignora las carpetas de código vía `.gitignore`.
+La carpeta local `Proyecto-Final/` es el checkout de ese monorepo.
 
 ## MCP del proyecto (`.cursor/mcp.json`)
 

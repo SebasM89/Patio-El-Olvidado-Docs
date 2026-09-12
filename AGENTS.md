@@ -1,23 +1,17 @@
-# Patio El Olvidado — Docs y agentes
+# Patio El Olvidado — Monorepo (docs + agentes + código)
 
-Fuente de verdad del producto + configuración de agentes Cursor. El código vive en repos separados.
+Sistema integral de gestión para restaurante. Todo el proyecto vive en este repositorio.
 
-## Contenido de este repo
+## Estructura
 
 | Ruta | Contenido |
 |------|-----------|
-| `docs/` | Objetivos, alcance, RF, RN, módulos, entidades, flujos |
+| `docs/` | **Fuente de verdad** del producto (objetivos, alcance, RF, RN, módulos, entidades, flujos) |
 | `AGENTS.md` | Guía compartida para agentes |
 | `.cursor/` | Agentes, skills, rules, MCP |
-| `Script-BD-Patio-El-Olvidado.sql` | Script inicial SQL Server |
-
-## Repos de código
-
-| Repo | Rol | Ramas |
-|------|-----|--------|
-| [API-Patio-El-Olvidado](https://github.com/SebasM89/API-Patio-El-Olvidado) | Backend ASP.NET Core 8 | `DEV`, `PRE`, `main` |
-| [Patio-El-Olvidado](https://github.com/SebasM89/Patio-El-Olvidado) | Frontend Vue 3 | `DEV`, `PRE`, `main` |
-| **Este repo** | Docs + agentes | `DEV`, `PRE`, `main` |
+| `API-Patio-El-Olvidado/` | Backend ASP.NET Core 8 Web API |
+| `Patio-El-Olvidado/` | Frontend Vue 3 + TypeScript + Vite |
+| `Script-BD-Patio-El-Olvidado.sql` | Script inicial de SQL Server |
 
 ## Antes de cualquier cambio
 
@@ -54,10 +48,14 @@ Setup local: `.cursor/scripts/setup-mcp-env.ps1`
 
 ## Git (ambientes)
 
+Repo único: [Patio-El-Olvidado-Docs](https://github.com/SebasM89/Patio-El-Olvidado-Docs)
+
 - Testing funcional → `DEV`
 - Homologación → `PRE`
 - Producción → `main` (solo el usuario)
 - Skill: `/commits-promocion`
+
+Los repos históricos `API-Patio-El-Olvidado` y `Patio-El-Olvidado` quedan como legado; el desarrollo continúa en este monorepo.
 
 ## Flujo recomendado
 

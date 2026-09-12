@@ -6,9 +6,9 @@
 *.user
 appsettings.*.local.json
 
-# Repos de código (viven aparte; no forman parte de Docs)
-API-Patio-El-Olvidado/
-Patio-El-Olvidado/
+# Backups de .git previos al monorepo (si existen)
+.git-backup-*/
+**/.git.bak
 
 # OS / IDE
 .DS_Store
@@ -21,3 +21,4 @@ Thumbs.db
 **/obj/
 **/node_modules/
 **/dist/
+**/dist-ssr/

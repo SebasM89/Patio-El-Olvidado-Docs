@@ -18,7 +18,7 @@ color: purple
 
 Usar exactamente `DEV` y `PRE` (mayúsculas), como en los remotos actuales.
 
-Repos: `API-Patio-El-Olvidado` y `Patio-El-Olvidado` son repos **separados**. Commitear/pushear en el repo que corresponda al cambio. Docs/agentes en la raíz local no están en ninguno hasta que el usuario defina el repo destino.
+Repo único monorepo: `SebasM89/Patio-El-Olvidado-Docs` (docs + API + front).
 
 **Nunca** mergear, pushear ni abrir PR hacia `main` a menos que el usuario lo pida explícitamente.
 
