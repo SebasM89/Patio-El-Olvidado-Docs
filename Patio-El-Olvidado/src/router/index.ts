@@ -69,6 +69,24 @@ const router = createRouter({
       },
     },
     {
+      path: '/empleados',
+      name: 'empleados',
+      component: () => import('../views/EmpleadosView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin'],
+      },
+    },
+    {
+      path: '/mis-horas',
+      name: 'mis-horas',
+      component: () => import('../views/MisHorasView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Empleado'],
+      },
+    },
+    {
       path: '/mi-historial',
       name: 'mi-historial',
       component: () => import('../views/MiHistorialView.vue'),

@@ -97,14 +97,52 @@ CREATE TABLE Mesas (
     ubicacion VARCHAR(100)
 );
 
--- Tabla Empleados
+-- Tabla Empleados (RF-06 / CU06 ù modelo canùnico; reemplaza legado snake_case)
 CREATE TABLE Empleados (
-    id_empleado INT PRIMARY KEY IDENTITY(1,1),
-    nombre VARCHAR(100),
-    apellido VARCHAR(100),
-    puesto VARCHAR(100),
-    telefono VARCHAR(20)
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Nombre NVARCHAR(100) NOT NULL,
+    Puesto NVARCHAR(100) NULL,
+    Telefono NVARCHAR(30) NULL,
+    TarifaHora DECIMAL(10,2) NOT NULL,
+    HorasTrabajadas DECIMAL(10,4) NOT NULL CONSTRAINT DF_Empleados_Horas DEFAULT (0),
+    UsuarioId INT NULL,                       -- opcional: usuario rol Empleado
+    Activo BIT NOT NULL CONSTRAINT DF_Empleados_Activo DEFAULT (1),
+    CONSTRAINT FK_Empleados_Usuarios FOREIGN KEY (UsuarioId) REFERENCES Usuarios(Id) ON DELETE SET NULL,
+    CONSTRAINT CK_Empleados_TarifaHora CHECK (TarifaHora > 0),
+    CONSTRAINT CK_Empleados_HorasTrabajadas CHECK (HorasTrabajadas >= 0)
 );
+CREATE INDEX IX_Empleados_Nombre ON Empleados(Nombre);
+CREATE UNIQUE INDEX IX_Empleados_UsuarioId ON Empleados(UsuarioId) WHERE UsuarioId IS NOT NULL;
+
+-- Tabla Fichajes (RF-06 ù sustituye semùntica de Turnos legado)
+CREATE TABLE Fichajes (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    EmpleadoId INT NOT NULL,
+    EntradaUtc DATETIME2 NOT NULL,
+    SalidaUtc DATETIME2 NULL,
+    Horas DECIMAL(10,4) NULL,
+    CONSTRAINT FK_Fichajes_Empleados FOREIGN KEY (EmpleadoId) REFERENCES Empleados(Id)
+);
+CREATE INDEX IX_Fichajes_EmpleadoId ON Fichajes(EmpleadoId);
+CREATE INDEX IX_Fichajes_EntradaUtc ON Fichajes(EntradaUtc);
+
+-- Tabla Liquidaciones (RF-06 ù cùlculo interno MVP; sin AFIP/PDF)
+CREATE TABLE Liquidaciones (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    EmpleadoId INT NOT NULL,
+    PeriodoDesde DATE NOT NULL,
+    PeriodoHasta DATE NOT NULL,
+    Horas DECIMAL(10,4) NOT NULL,
+    TarifaHoraSnapshot DECIMAL(10,2) NOT NULL,
+    Monto DECIMAL(10,2) NOT NULL,
+    GeneradaEnUtc DATETIME2 NOT NULL CONSTRAINT DF_Liquidaciones_Generada DEFAULT (SYSUTCDATETIME()),
+    GeneradaPorUsuarioId INT NOT NULL,
+    CONSTRAINT FK_Liquidaciones_Empleados FOREIGN KEY (EmpleadoId) REFERENCES Empleados(Id),
+    CONSTRAINT FK_Liquidaciones_Usuarios FOREIGN KEY (GeneradaPorUsuarioId) REFERENCES Usuarios(Id),
+    CONSTRAINT CK_Liquidaciones_Horas CHECK (Horas >= 0),
+    CONSTRAINT CK_Liquidaciones_Monto CHECK (Monto >= 0)
+);
+CREATE INDEX IX_Liquidaciones_EmpleadoId ON Liquidaciones(EmpleadoId);
 
 -- Tabla Productos (RF-02 / CU02 - reemplaza legado Menus)
 CREATE TABLE Productos (
@@ -165,30 +203,29 @@ CREATE TABLE Reservaciones (
     FOREIGN KEY (id_mesa) REFERENCES Mesas(id_mesa)
 );
 
--- Tabla Turnos
+-- Tabla Turnos (LEGADO ó no usar en EF; reemplazado por Fichajes RF-06)
 CREATE TABLE Turnos (
     id_turno INT PRIMARY KEY IDENTITY(1,1),
     id_empleado INT,
     fecha DATE,
     hora_entrada TIME,
-    hora_salida TIME,
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
+    hora_salida TIME
+    -- FK legado a Empleados.id_empleado: omitida tras canonicizar Empleados
 );
 
--- Tabla Envios
+-- Tabla Envios (LEGADO ó delivery fuera de alcance MVP; no usar en EF)
 CREATE TABLE Envios (
     id_envio INT PRIMARY KEY IDENTITY(1,1),
     id_pedido INT,
     direccion_entrega VARCHAR(255),
     fecha_envio DATE,
     hora_envio TIME,
-    id_empleado INT, -- repartidor
+    id_empleado INT, -- repartidor (legado)
     estado BIT, -- 1 en camino, 0 entregado
-    FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id),
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
+    FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id)
 );
 
--- Tabla HistorialClientes (LEGADO ó no usar en EF)
+-- Tabla HistorialClientes (LEGADO ù no usar en EF)
 -- Fuente de verdad del historial de consumo (CU09) = Pedidos con ClienteId.
 -- Se mantiene solo por compatibilidad de scripts antiguos; no escribir desde la API.
 CREATE TABLE HistorialClientes (

@@ -216,6 +216,76 @@ public static class DbSeeder
                     -- Esquema Clientes ya canónico: historial legado incompatible → deprecar tabla
                     DROP TABLE [HistorialClientes];
                 END
+
+                -- Empleados canónicos (RF-06): reemplaza legado snake_case + Turnos
+                IF OBJECT_ID(N'dbo.Empleados', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Empleados', N'Id') IS NULL
+                BEGIN
+                    IF OBJECT_ID(N'dbo.Envios', N'U') IS NOT NULL
+                        DROP TABLE [Envios];
+                    IF OBJECT_ID(N'dbo.Turnos', N'U') IS NOT NULL
+                        DROP TABLE [Turnos];
+                    IF OBJECT_ID(N'dbo.Fichajes', N'U') IS NOT NULL
+                        DROP TABLE [Fichajes];
+                    IF OBJECT_ID(N'dbo.Liquidaciones', N'U') IS NOT NULL
+                        DROP TABLE [Liquidaciones];
+                    DROP TABLE [Empleados];
+                END
+
+                IF OBJECT_ID(N'dbo.Empleados', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Empleados] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [Nombre] NVARCHAR(100) NOT NULL,
+                        [Puesto] NVARCHAR(100) NULL,
+                        [Telefono] NVARCHAR(30) NULL,
+                        [TarifaHora] DECIMAL(10,2) NOT NULL,
+                        [HorasTrabajadas] DECIMAL(10,4) NOT NULL CONSTRAINT [DF_Empleados_Horas] DEFAULT (0),
+                        [UsuarioId] INT NULL,
+                        [Activo] BIT NOT NULL CONSTRAINT [DF_Empleados_Activo] DEFAULT (1),
+                        CONSTRAINT [PK_Empleados] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_Empleados_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [Usuarios]([Id]) ON DELETE SET NULL,
+                        CONSTRAINT [CK_Empleados_TarifaHora] CHECK ([TarifaHora] > 0),
+                        CONSTRAINT [CK_Empleados_HorasTrabajadas] CHECK ([HorasTrabajadas] >= 0)
+                    );
+                    CREATE INDEX [IX_Empleados_Nombre] ON [Empleados]([Nombre]);
+                    CREATE UNIQUE INDEX [IX_Empleados_UsuarioId] ON [Empleados]([UsuarioId]) WHERE [UsuarioId] IS NOT NULL;
+                END
+
+                IF OBJECT_ID(N'dbo.Fichajes', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Fichajes] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [EmpleadoId] INT NOT NULL,
+                        [EntradaUtc] DATETIME2 NOT NULL,
+                        [SalidaUtc] DATETIME2 NULL,
+                        [Horas] DECIMAL(10,4) NULL,
+                        CONSTRAINT [PK_Fichajes] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_Fichajes_Empleados] FOREIGN KEY ([EmpleadoId]) REFERENCES [Empleados]([Id])
+                    );
+                    CREATE INDEX [IX_Fichajes_EmpleadoId] ON [Fichajes]([EmpleadoId]);
+                    CREATE INDEX [IX_Fichajes_EntradaUtc] ON [Fichajes]([EntradaUtc]);
+                END
+
+                IF OBJECT_ID(N'dbo.Liquidaciones', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Liquidaciones] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [EmpleadoId] INT NOT NULL,
+                        [PeriodoDesde] DATE NOT NULL,
+                        [PeriodoHasta] DATE NOT NULL,
+                        [Horas] DECIMAL(10,4) NOT NULL,
+                        [TarifaHoraSnapshot] DECIMAL(10,2) NOT NULL,
+                        [Monto] DECIMAL(10,2) NOT NULL,
+                        [GeneradaEnUtc] DATETIME2 NOT NULL CONSTRAINT [DF_Liquidaciones_Generada] DEFAULT (SYSUTCDATETIME()),
+                        [GeneradaPorUsuarioId] INT NOT NULL,
+                        CONSTRAINT [PK_Liquidaciones] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_Liquidaciones_Empleados] FOREIGN KEY ([EmpleadoId]) REFERENCES [Empleados]([Id]),
+                        CONSTRAINT [FK_Liquidaciones_Usuarios] FOREIGN KEY ([GeneradaPorUsuarioId]) REFERENCES [Usuarios]([Id]),
+                        CONSTRAINT [CK_Liquidaciones_Horas] CHECK ([Horas] >= 0),
+                        CONSTRAINT [CK_Liquidaciones_Monto] CHECK ([Monto] >= 0)
+                    );
+                    CREATE INDEX [IX_Liquidaciones_EmpleadoId] ON [Liquidaciones]([EmpleadoId]);
+                END
                 """);
         }
 
@@ -326,6 +396,25 @@ public static class DbSeeder
                 });
             await db.SaveChangesAsync();
             logger.LogInformation("Clientes seed Development aplicados (perfil vinculado + walk-in con Visitas=4 para RN-05)");
+        }
+
+        if (env.IsDevelopment() && !await db.Empleados.AnyAsync())
+        {
+            var usuarioEmpleado = await db.Usuarios.FirstOrDefaultAsync(u => u.Email == DevEmpleadoEmail);
+            db.Empleados.Add(new Empleado
+            {
+                Nombre = "Empleado Dev",
+                Puesto = "Mozo",
+                Telefono = "3333333333",
+                TarifaHora = 2500m,
+                HorasTrabajadas = 0m,
+                UsuarioId = usuarioEmpleado?.Id,
+                Activo = true
+            });
+            await db.SaveChangesAsync();
+            logger.LogInformation(
+                "Empleado seed Development aplicado (perfil vinculado a {Email} para RF-06 / RN-07)",
+                DevEmpleadoEmail);
         }
 
         if (env.IsDevelopment() && !await db.Productos.AnyAsync())

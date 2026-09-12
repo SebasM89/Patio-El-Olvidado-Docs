@@ -10,12 +10,12 @@ const router = useRouter()
 const rolLabel = computed(() => auth.rol ?? 'Sin rol')
 const welcome = computed(() => {
   switch (auth.rol) {
-    case 'Admin':
-      return 'Panel administrador (placeholder)'
     case 'Empleado':
-      return 'Panel empleado (placeholder)'
+      return 'Panel empleado'
     case 'Cliente':
-      return 'Panel cliente (placeholder)'
+      return 'Panel cliente'
+    case 'Admin':
+      return 'Panel administrador'
     default:
       return 'Dashboard'
   }
@@ -72,6 +72,14 @@ async function onLogout() {
         >
           <span class="nav-title">Clientes</span>
           <span class="nav-desc">Registro, historial y fidelización (RF-05)</span>
+        </RouterLink>
+        <RouterLink v-if="auth.rol === 'Admin'" to="/empleados" class="nav-card">
+          <span class="nav-title">Empleados</span>
+          <span class="nav-desc">ABM, tarifas, fichaje asistido y liquidaciones (RF-06)</span>
+        </RouterLink>
+        <RouterLink v-if="auth.rol === 'Empleado'" to="/mis-horas" class="nav-card">
+          <span class="nav-title">Mis horas</span>
+          <span class="nav-desc">Fichaje propio y saldo de horas (RN-07)</span>
         </RouterLink>
         <RouterLink v-if="auth.rol === 'Cliente'" to="/mi-historial" class="nav-card">
           <span class="nav-title">Mi historial</span>

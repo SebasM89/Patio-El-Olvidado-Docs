@@ -21,6 +21,9 @@ public class AppDbContext : DbContext
     public DbSet<Caja> Cajas => Set<Caja>();
     public DbSet<Pago> Pagos => Set<Pago>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Empleado> Empleados => Set<Empleado>();
+    public DbSet<Fichaje> Fichajes => Set<Fichaje>();
+    public DbSet<Liquidacion> Liquidaciones => Set<Liquidacion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -130,6 +133,61 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.UsuarioId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Empleado>(entity =>
+        {
+            entity.ToTable("Empleados");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nombre).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Puesto).HasMaxLength(100);
+            entity.Property(x => x.Telefono).HasMaxLength(30);
+            entity.Property(x => x.TarifaHora).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.HorasTrabajadas).HasPrecision(10, 4).IsRequired();
+            entity.Property(x => x.Activo).IsRequired();
+            entity.HasIndex(x => x.Nombre);
+            entity.HasIndex(x => x.UsuarioId)
+                .IsUnique()
+                .HasFilter("[UsuarioId] IS NOT NULL");
+            entity.HasOne(x => x.Usuario)
+                .WithMany()
+                .HasForeignKey(x => x.UsuarioId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Fichaje>(entity =>
+        {
+            entity.ToTable("Fichajes");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.EntradaUtc).IsRequired();
+            entity.Property(x => x.Horas).HasPrecision(10, 4);
+            entity.HasIndex(x => x.EmpleadoId);
+            entity.HasIndex(x => x.EntradaUtc);
+            entity.HasOne(x => x.Empleado)
+                .WithMany(e => e.Fichajes)
+                .HasForeignKey(x => x.EmpleadoId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Liquidacion>(entity =>
+        {
+            entity.ToTable("Liquidaciones");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.PeriodoDesde).IsRequired();
+            entity.Property(x => x.PeriodoHasta).IsRequired();
+            entity.Property(x => x.Horas).HasPrecision(10, 4).IsRequired();
+            entity.Property(x => x.TarifaHoraSnapshot).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.Monto).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.GeneradaEnUtc).IsRequired();
+            entity.HasIndex(x => x.EmpleadoId);
+            entity.HasOne(x => x.Empleado)
+                .WithMany(e => e.Liquidaciones)
+                .HasForeignKey(x => x.EmpleadoId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.GeneradaPorUsuario)
+                .WithMany()
+                .HasForeignKey(x => x.GeneradaPorUsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Pedido>(entity =>

@@ -46,8 +46,31 @@
 ## Administrador
 
 ## Empleado
-- tarifaHora
-- horasTrabajadas
+- id
+- nombre
+- puesto (opcional)
+- telefono (opcional)
+- tarifaHora (> 0)
+- horasTrabajadas (≥ 0; se incrementa al cerrar fichaje)
+- usuarioId (opcional, único → Usuarios rol Empleado)
+- activo (soft-delete)
+
+## Fichaje
+- id
+- empleadoId
+- entradaUtc
+- salidaUtc (nullable mientras abierto)
+- horas (nullable; al cerrar = salida − entrada)
+
+## Liquidacion
+- id
+- empleadoId
+- periodoDesde / periodoHasta (date UTC)
+- horas
+- tarifaHoraSnapshot
+- monto (horas × tarifa al generar)
+- generadaEnUtc
+- generadaPorUsuarioId (Admin)
 
 ## Cliente
 - id
