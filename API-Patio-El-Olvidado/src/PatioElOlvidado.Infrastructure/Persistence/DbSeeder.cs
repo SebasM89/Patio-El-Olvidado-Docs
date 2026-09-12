@@ -104,6 +104,50 @@ public static class DbSeeder
                     );
                 END
                 """);
+
+            // Caja / Pagos canónicos; si hay esquema legado (id_caja / id_pago), recrear (dev)
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.Caja', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Caja', N'Id') IS NULL
+                BEGIN
+                    IF OBJECT_ID(N'dbo.Pagos', N'U') IS NOT NULL
+                        DROP TABLE [Pagos];
+                    DROP TABLE [Caja];
+                END
+
+                IF OBJECT_ID(N'dbo.Pagos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Pagos', N'Id') IS NULL
+                    DROP TABLE [Pagos];
+
+                IF OBJECT_ID(N'dbo.Caja', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Caja] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [Fecha] DATE NOT NULL,
+                        [TotalEfectivo] DECIMAL(10,2) NOT NULL CONSTRAINT [DF_Caja_Efectivo] DEFAULT (0),
+                        [TotalTarjeta] DECIMAL(10,2) NOT NULL CONSTRAINT [DF_Caja_Tarjeta] DEFAULT (0),
+                        [TotalTransferencia] DECIMAL(10,2) NOT NULL CONSTRAINT [DF_Caja_Transferencia] DEFAULT (0),
+                        CONSTRAINT [PK_Caja] PRIMARY KEY ([Id])
+                    );
+                    CREATE UNIQUE INDEX [IX_Caja_Fecha] ON [Caja]([Fecha]);
+                END
+
+                IF OBJECT_ID(N'dbo.Pagos', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Pagos] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [PedidoId] INT NOT NULL,
+                        [Metodo] NVARCHAR(30) NOT NULL,
+                        [Estado] NVARCHAR(30) NOT NULL,
+                        [Monto] DECIMAL(10,2) NOT NULL,
+                        [FechaPago] DATETIME2 NOT NULL CONSTRAINT [DF_Pagos_Fecha] DEFAULT (SYSUTCDATETIME()),
+                        [CajaId] INT NOT NULL,
+                        CONSTRAINT [PK_Pagos] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_Pagos_Pedidos] FOREIGN KEY ([PedidoId]) REFERENCES [Pedidos]([Id]),
+                        CONSTRAINT [FK_Pagos_Caja] FOREIGN KEY ([CajaId]) REFERENCES [Caja]([Id]),
+                        CONSTRAINT [CK_Pagos_Monto] CHECK ([Monto] > 0)
+                    );
+                    CREATE INDEX [IX_Pagos_PedidoId] ON [Pagos]([PedidoId]);
+                END
+                """);
         }
 
         if (!await db.Roles.AnyAsync())

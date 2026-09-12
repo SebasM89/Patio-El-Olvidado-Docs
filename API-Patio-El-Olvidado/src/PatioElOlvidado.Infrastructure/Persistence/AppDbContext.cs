@@ -18,6 +18,8 @@ public class AppDbContext : DbContext
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<Pedido> Pedidos => Set<Pedido>();
     public DbSet<DetallePedido> DetallePedidos => Set<DetallePedido>();
+    public DbSet<Caja> Cajas => Set<Caja>();
+    public DbSet<Pago> Pagos => Set<Pago>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -137,6 +139,37 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Producto)
                 .WithMany()
                 .HasForeignKey(x => x.ProductoId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Caja>(entity =>
+        {
+            entity.ToTable("Caja");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Fecha).IsRequired();
+            entity.HasIndex(x => x.Fecha).IsUnique();
+            entity.Property(x => x.TotalEfectivo).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.TotalTarjeta).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.TotalTransferencia).HasPrecision(10, 2).IsRequired();
+            entity.Ignore(x => x.Total);
+        });
+
+        modelBuilder.Entity<Pago>(entity =>
+        {
+            entity.ToTable("Pagos");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Metodo).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Estado).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Monto).HasPrecision(10, 2).IsRequired();
+            entity.Property(x => x.FechaPago).IsRequired();
+            entity.HasIndex(x => x.PedidoId);
+            entity.HasOne(x => x.Pedido)
+                .WithMany(x => x.Pagos)
+                .HasForeignKey(x => x.PedidoId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Caja)
+                .WithMany(x => x.Pagos)
+                .HasForeignKey(x => x.CajaId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

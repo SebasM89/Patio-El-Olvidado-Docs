@@ -81,9 +81,13 @@
 - precioUnitario (snapshot)
 
 ## Pago
-- metodo
-- estado
+- id
+- pedidoId (FK Pedido)
+- metodo (Efectivo | Tarjeta | Transferencia)
+- estado (Completado | Anulado)
 - monto
+- fechaPago (UTC)
+- cajaId (FK Caja)
 
 ## AuditoriaLog
 
@@ -96,9 +100,12 @@
 - estado
 
 ## Caja
-- fecha
-- total
-
+- id
+- fecha (date UTC, única = un registro/día)
+- totalEfectivo
+- totalTarjeta
+- totalTransferencia
+- total (derivado = suma de los tres)
 ## Inventario
 
 ## Proveedor

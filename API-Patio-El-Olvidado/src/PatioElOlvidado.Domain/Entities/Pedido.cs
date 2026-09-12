@@ -16,4 +16,5 @@ public class Pedido
 
     public Usuario CreadoPorUsuario { get; set; } = null!;
     public ICollection<DetallePedido> Detalles { get; set; } = new List<DetallePedido>();
+    public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
 }

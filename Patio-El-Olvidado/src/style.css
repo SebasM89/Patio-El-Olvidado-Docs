@@ -293,3 +293,64 @@ body {
   margin: 0.5rem 0 0;
   color: #44403c;
 }
+
+.cobro-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pagos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pagos-lista li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #e7e5e4;
+  font-size: 0.9rem;
+}
+
+.caja-resumen {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.caja-fecha {
+  margin: 0 0 1rem;
+  color: #57534e;
+}
+
+.caja-totales {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.caja-totales dt {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #78716c;
+}
+
+.caja-totales dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.caja-total dd {
+  font-size: 1.35rem;
+}

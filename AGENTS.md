@@ -59,4 +59,6 @@ Los repos históricos `API-Patio-El-Olvidado` y `Patio-El-Olvidado` quedan como 
 
 ## Flujo recomendado
 
-Arquitecto planifica → Desarrollador implementa → Tester valida → `/commits-promocion` a `DEV` → (OK) homologar a `PRE`.
+Arquitecto planifica → Desarrollador implementa → Tester valida → **preguntar al usuario** → `/commits-promocion` a `DEV` → (OK) homologar a `PRE`.
+
+**Autonomía:** no pedir confirmación entre arquitecto/desarrollador/tester. Solo pedir OK para publicar en `DEV` (o promover `PRE`/`main`). Ver `.cursor/rules/autonomia-ciclo.mdc`.

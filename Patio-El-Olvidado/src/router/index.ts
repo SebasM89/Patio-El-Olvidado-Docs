@@ -50,6 +50,15 @@ const router = createRouter({
         roles: ['Admin', 'Empleado', 'Cliente'],
       },
     },
+    {
+      path: '/caja',
+      name: 'caja',
+      component: () => import('../views/CajaView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Empleado'],
+      },
+    },
   ],
 })
 

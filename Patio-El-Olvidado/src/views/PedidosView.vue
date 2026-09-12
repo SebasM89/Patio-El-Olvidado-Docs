@@ -3,8 +3,10 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { pedidoService } from '../services/pedidoService'
 import { productoService } from '../services/productoService'
+import { pagoService } from '../services/pagoService'
 import type { Pedido, PedidoPayload, PedidoTipo } from '../types/pedido'
 import type { Producto } from '../types/producto'
+import type { Pago, PagoMetodo } from '../types/pago'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
@@ -16,6 +18,7 @@ import Tag from 'primevue/tag'
 
 const auth = useAuthStore()
 const isStaff = computed(() => auth.rol === 'Admin' || auth.rol === 'Empleado')
+const isAdmin = computed(() => auth.rol === 'Admin')
 const isCliente = computed(() => auth.rol === 'Cliente')
 
 const pedidos = ref<Pedido[]>([])
@@ -39,6 +42,15 @@ const form = reactive<{
   lineas: [{ productoId: null, cantidad: 1 }],
 })
 
+const cobroVisible = ref(false)
+const cobroPedido = ref<Pedido | null>(null)
+const cobroPagos = ref<Pago[]>([])
+const cobroLoading = ref(false)
+const cobroForm = reactive<{ metodo: PagoMetodo; monto: number | null }>({
+  metodo: 'Efectivo',
+  monto: null,
+})
+
 const tipoOptions = [
   { label: 'Local', value: 'Local' },
   { label: 'Para llevar', value: 'ParaLlevar' },
@@ -52,6 +64,12 @@ const estadoOptions = [
   { label: 'Cancelado', value: 'Cancelado' },
 ]
 
+const metodoOptions = [
+  { label: 'Efectivo', value: 'Efectivo' },
+  { label: 'Tarjeta', value: 'Tarjeta' },
+  { label: 'Transferencia', value: 'Transferencia' },
+]
+
 const dialogTitle = computed(() => (editingId.value ? 'Editar pedido' : 'Nuevo pedido'))
 
 const formSubtotal = computed(() =>
@@ -61,6 +79,17 @@ const formSubtotal = computed(() =>
     return acc + p.precio * (line.cantidad || 0)
   }, 0),
 )
+
+const cobroPagado = computed(() =>
+  cobroPagos.value
+    .filter((p) => p.estado === 'Completado')
+    .reduce((acc, p) => acc + Number(p.monto), 0),
+)
+
+const cobroSaldo = computed(() => {
+  if (!cobroPedido.value) return 0
+  return Math.max(0, Number(cobroPedido.value.total) - cobroPagado.value)
+})
 
 function money(n: number) {
   return Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
@@ -209,6 +238,100 @@ function canCancel(p: Pedido) {
   return p.estado === 'EnPreparacion' || (isStaff.value && p.estado === 'Listo')
 }
 
+function canCobrar(p: Pedido) {
+  return isStaff.value && (p.estado === 'Listo' || p.estado === 'Entregado')
+}
+
+async function openCobro(p: Pedido) {
+  if (!canCobrar(p)) return
+  cobroPedido.value = p
+  cobroForm.metodo = 'Efectivo'
+  cobroForm.monto = null
+  cobroVisible.value = true
+  cobroLoading.value = true
+  error.value = null
+  try {
+    const { data } = await pagoService.listByPedido(p.id)
+    cobroPagos.value = data
+    const saldo = Math.max(
+      0,
+      Number(p.total) -
+        data.filter((x) => x.estado === 'Completado').reduce((a, x) => a + Number(x.monto), 0),
+    )
+    cobroForm.monto = saldo > 0 ? Number(saldo.toFixed(2)) : null
+  } catch (e: unknown) {
+    error.value =
+      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+      'No se pudieron cargar los pagos.'
+    cobroVisible.value = false
+  } finally {
+    cobroLoading.value = false
+  }
+}
+
+async function registrarPago() {
+  if (!cobroPedido.value || !cobroForm.monto || cobroForm.monto <= 0) {
+    error.value = 'Indicá un monto válido.'
+    return
+  }
+  error.value = null
+  success.value = null
+  cobroLoading.value = true
+  try {
+    await pagoService.create({
+      pedidoId: cobroPedido.value.id,
+      metodo: cobroForm.metodo,
+      monto: cobroForm.monto,
+    })
+    success.value = `Pago registrado en pedido #${cobroPedido.value.id}.`
+    const { data } = await pagoService.listByPedido(cobroPedido.value.id)
+    cobroPagos.value = data
+    const saldo = Math.max(
+      0,
+      Number(cobroPedido.value.total) -
+        data.filter((x) => x.estado === 'Completado').reduce((a, x) => a + Number(x.monto), 0),
+    )
+    cobroForm.monto = saldo > 0 ? Number(saldo.toFixed(2)) : null
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number; data?: { message?: string } } })?.response
+      ?.status
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    if (status === 409) {
+      error.value = msg ?? 'El pago supera el total pendiente del pedido.'
+    } else {
+      error.value = msg ?? 'No se pudo registrar el pago.'
+    }
+  } finally {
+    cobroLoading.value = false
+  }
+}
+
+async function anularPago(pago: Pago) {
+  if (!isAdmin.value || pago.estado !== 'Completado') return
+  error.value = null
+  success.value = null
+  cobroLoading.value = true
+  try {
+    await pagoService.anular(pago.id)
+    success.value = `Pago #${pago.id} anulado.`
+    if (cobroPedido.value) {
+      const { data } = await pagoService.listByPedido(cobroPedido.value.id)
+      cobroPagos.value = data
+      const saldo = Math.max(
+        0,
+        Number(cobroPedido.value.total) -
+          data.filter((x) => x.estado === 'Completado').reduce((a, x) => a + Number(x.monto), 0),
+      )
+      cobroForm.monto = saldo > 0 ? Number(saldo.toFixed(2)) : null
+    }
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    error.value = msg ?? 'No se pudo anular el pago.'
+  } finally {
+    cobroLoading.value = false
+  }
+}
+
 onMounted(async () => {
   try {
     await loadProductos()
@@ -224,10 +347,11 @@ onMounted(async () => {
     <header class="menu-header">
       <div>
         <h1>Pedidos</h1>
-        <p>Local y para llevar (RF-03 / CU03)</p>
+        <p>Local y para llevar (RF-03 / CU03) · Cobro (RF-04)</p>
       </div>
       <div class="header-actions">
         <RouterLink to="/dashboard" class="back-link">← Dashboard</RouterLink>
+        <RouterLink v-if="isStaff" to="/caja" class="back-link">Caja del día</RouterLink>
         <Button label="Nuevo pedido" icon="pi pi-plus" @click="openCreate" />
       </div>
     </header>
@@ -294,7 +418,7 @@ onMounted(async () => {
           </ul>
         </template>
       </Column>
-      <Column header="Acciones" style="width: 14rem">
+      <Column header="Acciones" style="width: 16rem">
         <template #body="{ data }">
           <div class="row-actions">
             <Button
@@ -322,6 +446,14 @@ onMounted(async () => {
               @click="cambiarEstado(data, 'Entregado')"
             />
             <Button
+              v-if="canCobrar(data)"
+              label="Cobrar"
+              size="small"
+              severity="help"
+              text
+              @click="openCobro(data)"
+            />
+            <Button
               v-if="canCancel(data)"
               label="Cancelar"
               size="small"
@@ -337,7 +469,7 @@ onMounted(async () => {
 
     <p v-if="isCliente" class="hint">
       Como cliente solo ves y gestionás tus propios pedidos. Podés cancelar mientras estén en
-      preparación.
+      preparación. El cobro lo realiza el personal.
     </p>
 
     <Dialog
@@ -389,6 +521,70 @@ onMounted(async () => {
           <Button type="submit" label="Guardar" />
         </div>
       </form>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="cobroVisible"
+      :header="cobroPedido ? `Cobrar pedido #${cobroPedido.id}` : 'Cobrar'"
+      modal
+      :style="{ width: 'min(520px, 95vw)' }"
+    >
+      <div v-if="cobroPedido" class="cobro-panel">
+        <p>
+          Total pedido: <strong>{{ money(cobroPedido.total) }}</strong> · Pagado:
+          <strong>{{ money(cobroPagado) }}</strong> · Saldo:
+          <strong>{{ money(cobroSaldo) }}</strong>
+        </p>
+
+        <ul v-if="cobroPagos.length" class="pagos-lista">
+          <li v-for="pago in cobroPagos" :key="pago.id">
+            <span>
+              #{{ pago.id }} · {{ pago.metodo }} · {{ money(pago.monto) }} ·
+              {{ pago.estado }}
+            </span>
+            <Button
+              v-if="isAdmin && pago.estado === 'Completado'"
+              label="Anular"
+              size="small"
+              severity="danger"
+              text
+              :loading="cobroLoading"
+              @click="anularPago(pago)"
+            />
+          </li>
+        </ul>
+        <p v-else class="hint">Sin pagos registrados.</p>
+
+        <form v-if="cobroSaldo > 0.01" class="product-form" @submit.prevent="registrarPago">
+          <label for="metodoPago">Método</label>
+          <Select
+            id="metodoPago"
+            v-model="cobroForm.metodo"
+            :options="metodoOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+          <label for="montoPago">Monto</label>
+          <InputNumber
+            id="montoPago"
+            v-model="cobroForm.monto"
+            mode="currency"
+            currency="ARS"
+            locale="es-AR"
+            :min="0.01"
+            class="w-full"
+          />
+          <div class="form-actions">
+            <Button type="button" label="Cerrar" severity="secondary" text @click="cobroVisible = false" />
+            <Button type="submit" label="Registrar pago" :loading="cobroLoading" />
+          </div>
+        </form>
+        <div v-else class="form-actions">
+          <p class="hint">Pedido saldado.</p>
+          <Button type="button" label="Cerrar" @click="cobroVisible = false" />
+        </div>
+      </div>
     </Dialog>
   </div>
 </template>

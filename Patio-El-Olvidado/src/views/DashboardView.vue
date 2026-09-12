@@ -53,9 +53,17 @@ async function onLogout() {
             {{
               auth.rol === 'Cliente'
                 ? 'Crear y seguir tus pedidos'
-                : 'Gestionar pedidos local / para llevar'
+                : 'Gestionar pedidos local / para llevar y cobrar'
             }}
           </span>
+        </RouterLink>
+        <RouterLink
+          v-if="auth.rol === 'Admin' || auth.rol === 'Empleado'"
+          to="/caja"
+          class="nav-card"
+        >
+          <span class="nav-title">Caja del día</span>
+          <span class="nav-desc">Totales por método (RN-08)</span>
         </RouterLink>
       </nav>
 

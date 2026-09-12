@@ -189,25 +189,27 @@ CREATE TABLE HistorialClientes (
     FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id)
 );
 
--- Tabla Caja
+-- Tabla Caja (RN-08: un registro por dia UTC; totales por metodo)
 CREATE TABLE Caja (
-    id_caja INT PRIMARY KEY IDENTITY(1,1),
-    fecha DATE UNIQUE, -- una fila por d?a
-    total_efectivo DECIMAL(10,2),
-    total_tarjeta DECIMAL(10,2),
-    total_transferencia DECIMAL(10,2)
-    -- total_general puede calcularse como suma de los anteriores
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Fecha DATE NOT NULL,
+    TotalEfectivo DECIMAL(10,2) NOT NULL CONSTRAINT DF_Caja_Efectivo DEFAULT (0),
+    TotalTarjeta DECIMAL(10,2) NOT NULL CONSTRAINT DF_Caja_Tarjeta DEFAULT (0),
+    TotalTransferencia DECIMAL(10,2) NOT NULL CONSTRAINT DF_Caja_Transferencia DEFAULT (0)
 );
+CREATE UNIQUE INDEX IX_Caja_Fecha ON Caja(Fecha);
 
--- Tabla Pagos
+-- Tabla Pagos (RF-04 / CU04: cobros parciales / division de cuenta)
 CREATE TABLE Pagos (
-    id_pago INT PRIMARY KEY IDENTITY(1,1),
-    id_pedido INT,
-    metodo_pago VARCHAR(50), -- Efectivo, Tarjeta, Transferencia
-    total DECIMAL(10,2),
-    fecha_pago DATE,
-    hora_pago TIME,
-    id_caja INT,
-    FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id),
-    FOREIGN KEY (id_caja) REFERENCES Caja(id_caja)
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    PedidoId INT NOT NULL,
+    Metodo NVARCHAR(30) NOT NULL,            -- Efectivo | Tarjeta | Transferencia
+    Estado NVARCHAR(30) NOT NULL,            -- Completado | Anulado
+    Monto DECIMAL(10,2) NOT NULL,
+    FechaPago DATETIME2 NOT NULL CONSTRAINT DF_Pagos_Fecha DEFAULT (SYSUTCDATETIME()),
+    CajaId INT NOT NULL,
+    CONSTRAINT FK_Pagos_Pedidos FOREIGN KEY (PedidoId) REFERENCES Pedidos(Id),
+    CONSTRAINT FK_Pagos_Caja FOREIGN KEY (CajaId) REFERENCES Caja(Id),
+    CONSTRAINT CK_Pagos_Monto CHECK (Monto > 0)
 );
+CREATE INDEX IX_Pagos_PedidoId ON Pagos(PedidoId);
