@@ -22,6 +22,20 @@ public class LiquidacionRepository : ILiquidacionRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Liquidacion>> ListByPeriodoIntersectAsync(
+        DateOnly desde,
+        DateOnly hasta,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.Liquidaciones
+            .Include(l => l.Empleado)
+            .Where(l => l.PeriodoDesde <= hasta && l.PeriodoHasta >= desde)
+            .OrderBy(l => l.PeriodoDesde)
+            .ThenBy(l => l.EmpleadoId)
+            .ThenBy(l => l.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(Liquidacion liquidacion, CancellationToken cancellationToken = default)
     {
         await _db.Liquidaciones.AddAsync(liquidacion, cancellationToken);

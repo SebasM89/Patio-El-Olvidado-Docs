@@ -37,6 +37,12 @@ public static class DependencyInjection
         services.AddScoped<IEmailSender, LoggingEmailSender>();
         services.AddSingleton<ICajaPdfExporter, QuestPdfCajaExporter>();
         services.AddSingleton<ICajaCsvExporter, CsvHelperCajaExporter>();
+        services.AddSingleton<IVentasPdfExporter, QuestPdfVentasExporter>();
+        services.AddSingleton<IVentasCsvExporter, CsvHelperVentasExporter>();
+        services.AddSingleton<ICajaRangoPdfExporter, QuestPdfCajaRangoExporter>();
+        services.AddSingleton<ICajaRangoCsvExporter, CsvHelperCajaRangoExporter>();
+        services.AddSingleton<INominaPdfExporter, QuestPdfNominaExporter>();
+        services.AddSingleton<INominaCsvExporter, CsvHelperNominaExporter>();
 
         return services;
     }

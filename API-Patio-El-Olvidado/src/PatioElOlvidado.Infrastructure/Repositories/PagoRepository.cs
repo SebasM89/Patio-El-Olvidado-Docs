@@ -35,6 +35,24 @@ public class PagoRepository : IPagoRepository
             .SumAsync(p => (decimal?)p.Monto, cancellationToken) ?? 0m;
     }
 
+    public async Task<IReadOnlyList<Pago>> ListCompletadosByFechaPagoRangoAsync(
+        DateOnly desde,
+        DateOnly hasta,
+        CancellationToken cancellationToken = default)
+    {
+        var fromUtc = desde.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var toExclusiveUtc = hasta.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+        return await _db.Pagos
+            .Where(p =>
+                p.Estado == PagoEstado.Completado
+                && p.FechaPago >= fromUtc
+                && p.FechaPago < toExclusiveUtc)
+            .OrderBy(p => p.FechaPago)
+            .ThenBy(p => p.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(Pago pago, CancellationToken cancellationToken = default)
     {
         await _db.Pagos.AddAsync(pago, cancellationToken);

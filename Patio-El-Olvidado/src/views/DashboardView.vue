@@ -77,6 +77,10 @@ async function onLogout() {
           <span class="nav-title">Empleados</span>
           <span class="nav-desc">ABM, tarifas, fichaje asistido y liquidaciones (RF-06)</span>
         </RouterLink>
+        <RouterLink v-if="auth.rol === 'Admin'" to="/reportes" class="nav-card">
+          <span class="nav-title">Reportes</span>
+          <span class="nav-desc">Ventas, caja y nómina por rango (CU11)</span>
+        </RouterLink>
         <RouterLink v-if="auth.rol === 'Empleado'" to="/mis-horas" class="nav-card">
           <span class="nav-title">Mis horas</span>
           <span class="nav-desc">Fichaje propio y saldo de horas (RN-07)</span>

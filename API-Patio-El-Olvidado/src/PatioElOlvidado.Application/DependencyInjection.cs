@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<ICajaService, CajaService>();
         services.AddScoped<IClienteService, ClienteService>();
         services.AddScoped<IEmpleadoService, EmpleadoService>();
+        services.AddScoped<IReportesService, ReportesService>();
         services.AddValidatorsFromAssemblyContaining<AuthService>();
         return services;
     }

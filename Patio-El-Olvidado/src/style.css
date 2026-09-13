@@ -394,3 +394,52 @@ body {
 .caja-total dd {
   font-size: 1.35rem;
 }
+
+.reportes-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.reportes-tab {
+  border: 1px solid #d6d3d1;
+  background: #fafaf9;
+  color: #44403c;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reportes-tab.active {
+  background: #44403c;
+  border-color: #44403c;
+  color: #fff;
+}
+
+.reportes-table-wrap {
+  margin-top: 1.25rem;
+  overflow-x: auto;
+}
+
+.reportes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.reportes-table th,
+.reportes-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #e7e5e4;
+}
+
+.reportes-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #78716c;
+}

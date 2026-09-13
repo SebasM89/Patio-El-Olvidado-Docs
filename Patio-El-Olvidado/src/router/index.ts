@@ -78,6 +78,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/reportes',
+      name: 'reportes',
+      component: () => import('../views/ReportesView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin'],
+      },
+    },
+    {
       path: '/mis-horas',
       name: 'mis-horas',
       component: () => import('../views/MisHorasView.vue'),
