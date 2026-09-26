@@ -16,7 +16,7 @@ Implementar el mínimo necesario según el plan del Arquitecto y la documentaci�
 2. `AGENTS.md` + `docs/cursor-rules.md`
 3. Docs del módulo: RF, RN, entidades, flujos
 4. Código existente en `API-Patio-El-Olvidado/` y `Patio-El-Olvidado/`
-5. `Script-BD-Patio-El-Olvidado.sql` (no romper el modelo sin avisar)
+5. Contrato de esquema del DBA y `Script-BD-Patio-El-Olvidado.sql` (no redefinir tablas, FKs ni índices; si falta algo, devolvélo al DBA)
 
 ## Stack
 
@@ -41,9 +41,15 @@ Implementar el mínimo necesario según el plan del Arquitecto y la documentaci�
 - Nunca publicar a `main`
 - Monorepo: cambios de API y front van en el mismo repo
 
+## Equipo
+
+- El Arquitecto fija alcance y contratos.
+- El DBA es dueño del esquema. Consumí sus tablas; no las rediseñes en el servicio.
+- Si el Tester devuelve defectos de API, RN o UI, los corregís vos.
+
 ## Límites
 
 - No rediseñes arquitectura sin consultar al Arquitecto
-- No agregues módulos fuera del MVP (`docs/02-alcance.md`)
+- No cambies el script SQL ni Fluent API de relaciones salvo un ajuste mínimo que el DBA haya dejado pendiente y documentado
 - No commits ni push a menos que el usuario lo pida
 - Preferí cambios pequeños y coherentes con el estilo del repo

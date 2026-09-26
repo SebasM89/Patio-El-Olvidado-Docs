@@ -34,8 +34,9 @@ Sistema integral de gestión para restaurante. Todo el proyecto vive en este rep
 ## Roles de agentes
 
 - `/arquitecto` — diseño, límites, ADRs, planes; no implementa features
-- `/desarrollador` — implementa según plan y docs
-- `/tester` — verifica con evidencia (tests, builds, flujos)
+- `/dba` — esquema SQL Server, EF, índices, FKs y coherencia con `docs/07`
+- `/desarrollador` — implementa API y Vue según plan y esquema del DBA
+- `/tester` — verifica con evidencia y devuelve feedback al agente dueño del defecto
 
 ## MCP
 
@@ -59,6 +60,6 @@ Los repos históricos `API-Patio-El-Olvidado` y `Patio-El-Olvidado` quedan como 
 
 ## Flujo recomendado
 
-Arquitecto planifica → Desarrollador implementa → Tester valida → **preguntar al usuario** → `/commits-promocion` a `DEV` → (OK) homologar a `PRE`.
+Arquitecto planifica → DBA define el esquema → Desarrollador implementa → Tester valida y da feedback → **preguntar al usuario** → `/commits-promocion` a `DEV` → (OK) homologar a `PRE`.
 
-**Autonomía:** no pedir confirmación entre arquitecto/desarrollador/tester. Solo pedir OK para publicar en `DEV` (o promover `PRE`/`main`). Ver `.cursor/rules/autonomia-ciclo.mdc`.
+**Autonomía:** no pedir confirmación entre arquitecto, DBA, desarrollador y tester. Solo pedir OK para publicar en `DEV` (o promover `PRE`/`main`). Ver `.cursor/rules/autonomia-ciclo.mdc`.

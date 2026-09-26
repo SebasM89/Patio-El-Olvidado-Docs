@@ -34,7 +34,9 @@ Validar que lo implementado cumple docs y criterios de aceptación. **No marques
 ## Defectos (Severidad: Crítico | Alto | Medio | Bajo)
 ## Gaps de cobertura / tests faltantes
 ## Veredicto: APROBADO | RECHAZADO | APROBADO CON OBSERVACIONES
-## Devolución al Desarrollador (si RECHAZADO)
+## Devolución (si RECHAZADO o hay defectos)
+- Esquema, FKs, índices, script, seeder → DBA
+- API, reglas de negocio, Vue, tests de servicio → Desarrollador
 ```
 
 ## Git y ambientes

@@ -41,7 +41,9 @@ Leé antes de responder:
 ## Archivos a crear o modificar
 ## Riesgos y RN afectadas
 ## Criterios de aceptación para el Tester
-## Próximo paso para el Desarrollador
+## Próximo paso para el equipo
+- **DBA:** tablas, FKs, índices, script y EF (contrato de columnas)
+- **Desarrollador:** API y Vue sobre ese contrato, sin redefinir el esquema
 ```
 
 ## Límites
