@@ -287,6 +287,66 @@ public static class DbSeeder
                     CREATE INDEX [IX_Liquidaciones_EmpleadoId] ON [Liquidaciones]([EmpleadoId]);
                 END
                 """);
+
+            // Mesas / Reservas canónicas (CU08). No mapear Reservaciones legado.
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.Mesas', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Mesas', N'Id') IS NULL
+                BEGIN
+                    IF OBJECT_ID(N'dbo.Reservaciones', N'U') IS NOT NULL
+                        DROP TABLE [Reservaciones];
+                    IF OBJECT_ID(N'dbo.Reservas', N'U') IS NOT NULL
+                        DROP TABLE [Reservas];
+                    DROP TABLE [Mesas];
+                END
+
+                IF OBJECT_ID(N'dbo.Mesas', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Mesas] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [Numero] INT NOT NULL,
+                        [Capacidad] INT NOT NULL,
+                        [Ubicacion] NVARCHAR(100) NULL,
+                        CONSTRAINT [PK_Mesas] PRIMARY KEY ([Id]),
+                        CONSTRAINT [CK_Mesas_Capacidad] CHECK ([Capacidad] > 0)
+                    );
+                    CREATE UNIQUE INDEX [IX_Mesas_Numero] ON [Mesas]([Numero]);
+                END
+
+                IF OBJECT_ID(N'dbo.Reservas', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [Reservas] (
+                        [Id] INT NOT NULL IDENTITY(1,1),
+                        [ClienteId] INT NOT NULL,
+                        [MesaId] INT NOT NULL,
+                        [Fecha] DATE NOT NULL,
+                        [HoraInicio] TIME NOT NULL,
+                        [HoraFin] TIME NOT NULL,
+                        [Personas] INT NOT NULL,
+                        [Estado] NVARCHAR(30) NOT NULL,
+                        [CreadoPorUsuarioId] INT NOT NULL,
+                        [FechaCreacion] DATETIME2 NOT NULL CONSTRAINT [DF_Reservas_FechaCreacion] DEFAULT (SYSUTCDATETIME()),
+                        CONSTRAINT [PK_Reservas] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_Reservas_Clientes] FOREIGN KEY ([ClienteId]) REFERENCES [Clientes]([Id]) ON DELETE NO ACTION,
+                        CONSTRAINT [FK_Reservas_Mesas] FOREIGN KEY ([MesaId]) REFERENCES [Mesas]([Id]) ON DELETE NO ACTION,
+                        CONSTRAINT [FK_Reservas_Usuarios] FOREIGN KEY ([CreadoPorUsuarioId]) REFERENCES [Usuarios]([Id]) ON DELETE NO ACTION,
+                        CONSTRAINT [CK_Reservas_HoraFin] CHECK ([HoraFin] > [HoraInicio]),
+                        CONSTRAINT [CK_Reservas_Personas] CHECK ([Personas] > 0)
+                    );
+                    CREATE INDEX [IX_Reservas_MesaId_Fecha] ON [Reservas]([MesaId], [Fecha]);
+                    CREATE INDEX [IX_Reservas_ClienteId] ON [Reservas]([ClienteId]);
+                END
+                """);
+        }
+
+        if (!await db.Mesas.AnyAsync())
+        {
+            db.Mesas.AddRange(
+                new Mesa { Numero = 1, Capacidad = 2 },
+                new Mesa { Numero = 2, Capacidad = 4 },
+                new Mesa { Numero = 3, Capacidad = 4 },
+                new Mesa { Numero = 4, Capacidad = 6 });
+            await db.SaveChangesAsync();
+            logger.LogInformation("Mesas seed aplicadas (numeros 1-4, capacidades 2, 4, 4, 6)");
         }
 
         if (!await db.Roles.AnyAsync())

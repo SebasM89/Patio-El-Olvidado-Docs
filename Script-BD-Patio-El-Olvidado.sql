@@ -73,7 +73,7 @@ INSERT INTO Roles (Nombre, Descripcion) VALUES
 -- Dominio operativo (legado / MVP futuro)
 -- =========================
 
--- Tabla Clientes (RF-05 / CU05 ù modelo canùnico; reemplaza legado id_cliente)
+-- Tabla Clientes (RF-05 / CU05 ? modelo can?nico; reemplaza legado id_cliente)
 CREATE TABLE Clientes (
     Id INT PRIMARY KEY IDENTITY(1,1),
     Nombre NVARCHAR(100) NOT NULL,
@@ -89,15 +89,24 @@ CREATE INDEX IX_Clientes_Telefono ON Clientes(Telefono);
 CREATE UNIQUE INDEX IX_Clientes_Email ON Clientes(Email) WHERE Email IS NOT NULL;
 CREATE UNIQUE INDEX IX_Clientes_UsuarioId ON Clientes(UsuarioId) WHERE UsuarioId IS NOT NULL;
 
--- Tabla Mesas
+-- Tabla Mesas (CU08; catalogo fijo, sin Activo ni CRUD)
 CREATE TABLE Mesas (
-    id_mesa INT PRIMARY KEY IDENTITY(1,1),
-    numero INT,
-    capacidad INT,
-    ubicacion VARCHAR(100)
+    Id INT NOT NULL IDENTITY(1,1),
+    Numero INT NOT NULL,
+    Capacidad INT NOT NULL,
+    Ubicacion NVARCHAR(100) NULL,
+    CONSTRAINT PK_Mesas PRIMARY KEY (Id),
+    CONSTRAINT CK_Mesas_Capacidad CHECK (Capacidad > 0)
 );
+CREATE UNIQUE INDEX IX_Mesas_Numero ON Mesas(Numero);
 
--- Tabla Empleados (RF-06 / CU06 ù modelo canùnico; reemplaza legado snake_case)
+INSERT INTO Mesas (Numero, Capacidad) VALUES
+(1, 2),
+(2, 4),
+(3, 4),
+(4, 6);
+
+-- Tabla Empleados (RF-06 / CU06 ? modelo can?nico; reemplaza legado snake_case)
 CREATE TABLE Empleados (
     Id INT PRIMARY KEY IDENTITY(1,1),
     Nombre NVARCHAR(100) NOT NULL,
@@ -114,7 +123,7 @@ CREATE TABLE Empleados (
 CREATE INDEX IX_Empleados_Nombre ON Empleados(Nombre);
 CREATE UNIQUE INDEX IX_Empleados_UsuarioId ON Empleados(UsuarioId) WHERE UsuarioId IS NOT NULL;
 
--- Tabla Fichajes (RF-06 ù sustituye semùntica de Turnos legado)
+-- Tabla Fichajes (RF-06 ? sustituye sem?ntica de Turnos legado)
 CREATE TABLE Fichajes (
     Id INT PRIMARY KEY IDENTITY(1,1),
     EmpleadoId INT NOT NULL,
@@ -126,7 +135,7 @@ CREATE TABLE Fichajes (
 CREATE INDEX IX_Fichajes_EmpleadoId ON Fichajes(EmpleadoId);
 CREATE INDEX IX_Fichajes_EntradaUtc ON Fichajes(EntradaUtc);
 
--- Tabla Liquidaciones (RF-06 ù cùlculo interno MVP; sin AFIP/PDF)
+-- Tabla Liquidaciones (RF-06 ? c?lculo interno MVP; sin AFIP/PDF)
 CREATE TABLE Liquidaciones (
     Id INT PRIMARY KEY IDENTITY(1,1),
     EmpleadoId INT NOT NULL,
@@ -159,7 +168,7 @@ CREATE TABLE Productos (
 CREATE INDEX IX_Productos_Categoria ON Productos(Categoria);
 CREATE INDEX IX_Productos_Nombre ON Productos(Nombre);
 
--- Tabla Pedidos (RF-03 / CU03 ù modelo canùnico; RF-05 FK Cliente)
+-- Tabla Pedidos (RF-03 / CU03 ? modelo can?nico; RF-05 FK Cliente)
 CREATE TABLE Pedidos (
     Id INT PRIMARY KEY IDENTITY(1,1),
     Tipo NVARCHAR(20) NOT NULL,              -- Local | ParaLlevar
@@ -190,20 +199,29 @@ CREATE TABLE DetallePedidos (
     CONSTRAINT CK_DetallePedidos_Cantidad CHECK (Cantidad > 0)
 );
 
--- Tabla Reservaciones (legado MVP futuro; FK a Clientes canùnico)
-CREATE TABLE Reservaciones (
-    id_reservacion INT PRIMARY KEY IDENTITY(1,1),
-    id_cliente INT,
-    id_mesa INT,
-    fecha DATE,
-    hora_inicio TIME,
-    hora_fin TIME,
-    estado VARCHAR(50), -- confirmada, cancelada, finalizada
-    FOREIGN KEY (id_cliente) REFERENCES Clientes(Id),
-    FOREIGN KEY (id_mesa) REFERENCES Mesas(id_mesa)
+-- Tabla Reservas (CU08). No crear Reservaciones: legado, no mapear en EF.
+CREATE TABLE Reservas (
+    Id INT NOT NULL IDENTITY(1,1),
+    ClienteId INT NOT NULL,
+    MesaId INT NOT NULL,
+    Fecha DATE NOT NULL,                         -- dia civil, no UTC
+    HoraInicio TIME NOT NULL,
+    HoraFin TIME NOT NULL,
+    Personas INT NOT NULL,
+    Estado NVARCHAR(30) NOT NULL,                -- Confirmada | Cancelada | Finalizada
+    CreadoPorUsuarioId INT NOT NULL,
+    FechaCreacion DATETIME2 NOT NULL CONSTRAINT DF_Reservas_FechaCreacion DEFAULT (SYSUTCDATETIME()),
+    CONSTRAINT PK_Reservas PRIMARY KEY (Id),
+    CONSTRAINT FK_Reservas_Clientes FOREIGN KEY (ClienteId) REFERENCES Clientes(Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_Reservas_Mesas FOREIGN KEY (MesaId) REFERENCES Mesas(Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_Reservas_Usuarios FOREIGN KEY (CreadoPorUsuarioId) REFERENCES Usuarios(Id) ON DELETE NO ACTION,
+    CONSTRAINT CK_Reservas_HoraFin CHECK (HoraFin > HoraInicio),
+    CONSTRAINT CK_Reservas_Personas CHECK (Personas > 0)
 );
+CREATE INDEX IX_Reservas_MesaId_Fecha ON Reservas(MesaId, Fecha);
+CREATE INDEX IX_Reservas_ClienteId ON Reservas(ClienteId);
 
--- Tabla Turnos (LEGADO ó no usar en EF; reemplazado por Fichajes RF-06)
+-- Tabla Turnos (LEGADO ? no usar en EF; reemplazado por Fichajes RF-06)
 CREATE TABLE Turnos (
     id_turno INT PRIMARY KEY IDENTITY(1,1),
     id_empleado INT,
@@ -213,7 +231,7 @@ CREATE TABLE Turnos (
     -- FK legado a Empleados.id_empleado: omitida tras canonicizar Empleados
 );
 
--- Tabla Envios (LEGADO ó delivery fuera de alcance MVP; no usar en EF)
+-- Tabla Envios (LEGADO ? delivery fuera de alcance MVP; no usar en EF)
 CREATE TABLE Envios (
     id_envio INT PRIMARY KEY IDENTITY(1,1),
     id_pedido INT,
@@ -225,7 +243,7 @@ CREATE TABLE Envios (
     FOREIGN KEY (id_pedido) REFERENCES Pedidos(Id)
 );
 
--- Tabla HistorialClientes (LEGADO ù no usar en EF)
+-- Tabla HistorialClientes (LEGADO ? no usar en EF)
 -- Fuente de verdad del historial de consumo (CU09) = Pedidos con ClienteId.
 -- Se mantiene solo por compatibilidad de scripts antiguos; no escribir desde la API.
 CREATE TABLE HistorialClientes (

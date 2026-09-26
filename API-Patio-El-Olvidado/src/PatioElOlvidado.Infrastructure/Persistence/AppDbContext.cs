@@ -24,6 +24,8 @@ public class AppDbContext : DbContext
     public DbSet<Empleado> Empleados => Set<Empleado>();
     public DbSet<Fichaje> Fichajes => Set<Fichaje>();
     public DbSet<Liquidacion> Liquidaciones => Set<Liquidacion>();
+    public DbSet<Mesa> Mesas => Set<Mesa>();
+    public DbSet<Reserva> Reservas => Set<Reserva>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -258,6 +260,59 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Pagos)
                 .HasForeignKey(x => x.CajaId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Mesa>(entity =>
+        {
+            entity.ToTable("Mesas", t => t.HasCheckConstraint("CK_Mesas_Capacidad", "[Capacidad] > 0"));
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Numero).IsRequired();
+            entity.Property(x => x.Capacidad).IsRequired();
+            entity.Property(x => x.Ubicacion).HasMaxLength(100);
+            entity.HasIndex(x => x.Numero)
+                .IsUnique()
+                .HasDatabaseName("IX_Mesas_Numero");
+        });
+
+        modelBuilder.Entity<Reserva>(entity =>
+        {
+            entity.ToTable("Reservas", t =>
+            {
+                t.HasCheckConstraint("CK_Reservas_HoraFin", "[HoraFin] > [HoraInicio]");
+                t.HasCheckConstraint("CK_Reservas_Personas", "[Personas] > 0");
+            });
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Fecha).HasColumnType("date").IsRequired();
+            entity.Property(x => x.HoraInicio).HasColumnType("time").IsRequired();
+            entity.Property(x => x.HoraFin).HasColumnType("time").IsRequired();
+            entity.Property(x => x.Personas).IsRequired();
+            entity.Property(x => x.Estado)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
+            entity.Property(x => x.FechaCreacion)
+                .HasDefaultValueSql("SYSUTCDATETIME()")
+                .ValueGeneratedOnAdd()
+                .IsRequired();
+            entity.HasIndex(x => new { x.MesaId, x.Fecha })
+                .HasDatabaseName("IX_Reservas_MesaId_Fecha");
+            entity.HasIndex(x => x.ClienteId)
+                .HasDatabaseName("IX_Reservas_ClienteId");
+            entity.HasOne(x => x.Cliente)
+                .WithMany()
+                .HasForeignKey(x => x.ClienteId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Reservas_Clientes");
+            entity.HasOne(x => x.Mesa)
+                .WithMany(x => x.Reservas)
+                .HasForeignKey(x => x.MesaId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Reservas_Mesas");
+            entity.HasOne(x => x.CreadoPorUsuario)
+                .WithMany()
+                .HasForeignKey(x => x.CreadoPorUsuarioId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Reservas_Usuarios");
         });
     }
 }

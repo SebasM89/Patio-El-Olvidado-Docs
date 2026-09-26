@@ -51,6 +51,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/reservas',
+      name: 'reservas',
+      component: () => import('../views/ReservasView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Empleado', 'Cliente'],
+      },
+    },
+    {
       path: '/caja',
       name: 'caja',
       component: () => import('../views/CajaView.vue'),

@@ -123,10 +123,15 @@
 ## ConfiguracionSistema
 
 ## Reserva
-- fecha
-- hora
-- personas
-- estado
+- id
+- clienteId (FK Clientes ON DELETE NO ACTION)
+- mesaId (FK Mesas ON DELETE NO ACTION)
+- fecha (DATE, día civil, no UTC)
+- horaInicio / horaFin (TIME; horaFin > horaInicio)
+- personas (> 0)
+- estado (Confirmada | Cancelada | Finalizada)
+- creadoPorUsuarioId (FK Usuarios ON DELETE NO ACTION)
+- fechaCreacion (DATETIME2, default SYSUTCDATETIME())
 
 ## Caja
 - id
@@ -142,5 +147,10 @@
 ## Promocion
 
 ## Mesa
+- id
+- numero (único)
+- capacidad (> 0)
+- ubicacion (opcional)
+- Sin Activo y sin CRUD. Catálogo semilla: números 1–4, capacidades 2, 4, 4, 6.
 
 ## Notificacion

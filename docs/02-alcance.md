@@ -9,6 +9,7 @@
 - Empleados
 - Caja
 - Reportes
+- Reservas básicas (CU08)
 
 ## Fuera del alcance
 - Aplicación móvil nativa

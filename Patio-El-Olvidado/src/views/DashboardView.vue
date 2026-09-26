@@ -57,6 +57,16 @@ async function onLogout() {
             }}
           </span>
         </RouterLink>
+        <RouterLink to="/reservas" class="nav-card">
+          <span class="nav-title">Reservas</span>
+          <span class="nav-desc">
+            {{
+              auth.rol === 'Cliente'
+                ? 'Reservar una mesa y cancelar tus turnos'
+                : 'Agenda del día, alta, cancelación y cierre'
+            }}
+          </span>
+        </RouterLink>
         <RouterLink
           v-if="auth.rol === 'Admin' || auth.rol === 'Empleado'"
           to="/caja"
