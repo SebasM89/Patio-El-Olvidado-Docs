@@ -10,4 +10,7 @@ public class MovimientoStockDto
     public DateTime FechaUtc { get; set; }
     public int RegistradoPorUsuarioId { get; set; }
     public string? RegistradoPorNombre { get; set; }
+    public int? ProveedorId { get; set; }
+    /// <summary>Nombre actual del proveedor (join). No es una copia al insertar.</summary>
+    public string? ProveedorNombre { get; set; }
 }

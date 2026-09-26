@@ -403,6 +403,63 @@ public static class DbSeeder
                     CREATE INDEX IX_MovimientosStock_StockItemId_FechaUtc ON MovimientosStock(StockItemId, FechaUtc DESC);
                 END
                 """);
+
+            // Proveedores antes de la FK. Sin semilla. ALTER idempotente si MovimientosStock ya existe.
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.Proveedores', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE Proveedores (
+                        Id INT NOT NULL IDENTITY(1,1),
+                        Nombre NVARCHAR(100) NOT NULL,
+                        Contacto NVARCHAR(100) NULL,
+                        Telefono NVARCHAR(30) NULL,
+                        Email NVARCHAR(150) NULL,
+                        Notas NVARCHAR(300) NULL,
+                        Activo BIT NOT NULL CONSTRAINT DF_Proveedores_Activo DEFAULT (1),
+                        CONSTRAINT PK_Proveedores PRIMARY KEY (Id)
+                    );
+                    CREATE UNIQUE INDEX UX_Proveedores_Nombre ON Proveedores(Nombre);
+                    CREATE INDEX IX_Proveedores_Activo ON Proveedores(Activo);
+                END
+
+                IF OBJECT_ID(N'dbo.MovimientosStock', N'U') IS NOT NULL
+                   AND COL_LENGTH(N'dbo.MovimientosStock', N'ProveedorId') IS NULL
+                    ALTER TABLE MovimientosStock ADD ProveedorId INT NULL;
+
+                IF OBJECT_ID(N'dbo.MovimientosStock', N'U') IS NOT NULL
+                   AND OBJECT_ID(N'dbo.Proveedores', N'U') IS NOT NULL
+                   AND COL_LENGTH(N'dbo.MovimientosStock', N'ProveedorId') IS NOT NULL
+                   AND NOT EXISTS (
+                        SELECT 1 FROM sys.foreign_keys
+                        WHERE name = N'FK_MovimientosStock_Proveedores')
+                    EXEC(N'
+                        ALTER TABLE MovimientosStock ADD CONSTRAINT FK_MovimientosStock_Proveedores
+                            FOREIGN KEY (ProveedorId) REFERENCES Proveedores(Id) ON DELETE NO ACTION;
+                    ');
+
+                IF OBJECT_ID(N'dbo.MovimientosStock', N'U') IS NOT NULL
+                   AND COL_LENGTH(N'dbo.MovimientosStock', N'ProveedorId') IS NOT NULL
+                   AND NOT EXISTS (
+                        SELECT 1 FROM sys.check_constraints
+                        WHERE name = N'CK_MovimientosStock_ProveedorSoloEntrada'
+                          AND parent_object_id = OBJECT_ID(N'dbo.MovimientosStock'))
+                    EXEC(N'
+                        ALTER TABLE MovimientosStock ADD CONSTRAINT CK_MovimientosStock_ProveedorSoloEntrada
+                            CHECK (ProveedorId IS NULL OR Tipo = N''Entrada'');
+                    ');
+
+                IF OBJECT_ID(N'dbo.MovimientosStock', N'U') IS NOT NULL
+                   AND COL_LENGTH(N'dbo.MovimientosStock', N'ProveedorId') IS NOT NULL
+                   AND NOT EXISTS (
+                        SELECT 1 FROM sys.indexes
+                        WHERE name = N'IX_MovimientosStock_ProveedorId'
+                          AND object_id = OBJECT_ID(N'dbo.MovimientosStock'))
+                    EXEC(N'
+                        CREATE INDEX IX_MovimientosStock_ProveedorId
+                            ON MovimientosStock(ProveedorId)
+                            WHERE ProveedorId IS NOT NULL;
+                    ');
+                """);
         }
 
         if (!await db.Mesas.AnyAsync())

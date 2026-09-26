@@ -43,10 +43,13 @@ export interface MovimientoStock {
   fechaUtc: string
   registradoPorUsuarioId: number
   registradoPorNombre?: string | null
+  proveedorId?: number | null
+  proveedorNombre?: string | null
 }
 
 export interface RegistrarMovimientoPayload {
   tipo: TipoMovimientoStock
   cantidad: number
   motivo?: string | null
+  proveedorId?: number | null
 }

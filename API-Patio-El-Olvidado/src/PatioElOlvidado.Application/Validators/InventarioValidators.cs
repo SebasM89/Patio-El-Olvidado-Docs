@@ -69,6 +69,10 @@ public class RegistrarMovimientoRequestValidator : AbstractValidator<RegistrarMo
         RuleFor(x => x.Motivo)
             .MaximumLength(200)
             .When(x => !string.IsNullOrWhiteSpace(x.Motivo));
+
+        RuleFor(x => x.ProveedorId)
+            .GreaterThan(0).WithMessage("El proveedor no existe o no está activo.")
+            .When(x => x.ProveedorId.HasValue);
     }
 }
 

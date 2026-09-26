@@ -44,4 +44,6 @@
 - Actualización de datos sin cambiar cantidad ni unidad
 - Baja lógica
 - Entradas y salidas de stock
+- Catálogo de proveedores (alta, edición, baja lógica y consulta)
+- Reposición: entrada de stock con proveedor opcional
 - Alertas cuando el saldo es menor o igual al mínimo

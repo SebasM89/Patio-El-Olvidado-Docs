@@ -105,6 +105,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/proveedores',
+      name: 'proveedores',
+      component: () => import('../views/ProveedoresView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Empleado'],
+      },
+    },
+    {
       path: '/reportes',
       name: 'reportes',
       component: () => import('../views/ReportesView.vue'),

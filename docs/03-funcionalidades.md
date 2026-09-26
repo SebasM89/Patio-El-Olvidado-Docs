@@ -10,6 +10,7 @@
 - Gestionar reportes
 - Gestionar promociones
 - Gestionar inventario
+- Gestionar proveedores
 
 ## Empleado
 - Registrar horas
@@ -17,6 +18,7 @@
 - Consultar saldo de horas
 - Ver menú
 - Consultar inventario
+- Consultar proveedores
 
 ## Cliente
 - Ver menú

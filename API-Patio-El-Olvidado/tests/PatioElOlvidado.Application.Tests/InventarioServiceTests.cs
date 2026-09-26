@@ -38,7 +38,8 @@ public class InventarioServiceTests
             new StockItemRepository(db),
             new MovimientoStockRepository(db),
             new UsuarioRepository(db),
-            new UnitOfWork(db));
+            new UnitOfWork(db),
+            new ProveedorRepository(db));
 
         return (service, db, admin);
     }
@@ -70,6 +71,7 @@ public class InventarioServiceTests
         Assert.Equal(2m, movs[0].Cantidad);
         Assert.Equal(InventarioService.MotivoAltaInicial, movs[0].Motivo);
         Assert.Equal(admin.Id, movs[0].RegistradoPorUsuarioId);
+        Assert.Null(movs[0].ProveedorId);
         Assert.Equal(dto.CantidadActual, movs.Where(m => m.Tipo == TipoMovimientoStock.Entrada).Sum(m => m.Cantidad)
             - movs.Where(m => m.Tipo == TipoMovimientoStock.Salida).Sum(m => m.Cantidad));
     }
@@ -97,6 +99,104 @@ public class InventarioServiceTests
         var stored = await db.StockItems.SingleAsync();
         var movs = await db.MovimientosStock.Where(m => m.StockItemId == stored.Id).ToListAsync();
         Assert.Equal(stored.CantidadActual, Saldo(movs));
+    }
+
+    [Fact]
+    public async Task Entrada_SinProveedor_SumaSaldoYDejaProveedorNulo()
+    {
+        var (service, db, admin) = CreateSut();
+        var creado = await service.CreateAsync(Item("Arroz", "Kg"), admin.Id);
+
+        var mov = await service.RegistrarMovimientoAsync(creado.Id, new RegistrarMovimientoRequest
+        {
+            Tipo = "Entrada",
+            Cantidad = 5,
+            Motivo = "Compra sin proveedor"
+        }, admin.Id);
+
+        Assert.Null(mov.ProveedorId);
+        Assert.Null(mov.ProveedorNombre);
+        Assert.Equal(5m, (await service.GetByIdAsync(creado.Id))!.CantidadActual);
+
+        var stored = await db.MovimientosStock.SingleAsync(m => m.Id == mov.Id);
+        Assert.Null(stored.ProveedorId);
+    }
+
+    [Fact]
+    public async Task Entrada_ConProveedorActivo_SumaSaldoYGuardaFk()
+    {
+        var (service, db, admin) = CreateSut();
+        var creado = await service.CreateAsync(Item("Fideos", "Kg", cantidadInicial: 1), admin.Id);
+        var proveedor = new Proveedor { Nombre = "Molino Sur", Activo = true };
+        db.Proveedores.Add(proveedor);
+        await db.SaveChangesAsync();
+
+        var mov = await service.RegistrarMovimientoAsync(creado.Id, new RegistrarMovimientoRequest
+        {
+            Tipo = "Entrada",
+            Cantidad = 4,
+            ProveedorId = proveedor.Id
+        }, admin.Id);
+
+        Assert.Equal(proveedor.Id, mov.ProveedorId);
+        Assert.Equal("Molino Sur", mov.ProveedorNombre);
+        Assert.Equal(5m, (await service.GetByIdAsync(creado.Id))!.CantidadActual);
+
+        var stored = await db.MovimientosStock.SingleAsync(m => m.Id == mov.Id);
+        Assert.Equal(proveedor.Id, stored.ProveedorId);
+
+        proveedor.Nombre = "Molino Norte";
+        await db.SaveChangesAsync();
+
+        var listado = await service.ListMovimientosAsync(creado.Id);
+        var entrada = Assert.Single(listado, m => m.Id == mov.Id);
+        Assert.Equal(proveedor.Id, entrada.ProveedorId);
+        Assert.Equal("Molino Norte", entrada.ProveedorNombre);
+    }
+
+    [Fact]
+    public async Task Salida_ConProveedor_400_SaldoIntacto()
+    {
+        var (service, db, admin) = CreateSut();
+        var creado = await service.CreateAsync(Item("Aceitunas", "Kg", cantidadInicial: 8), admin.Id);
+        var proveedor = new Proveedor { Nombre = "Olivares", Activo = true };
+        db.Proveedores.Add(proveedor);
+        await db.SaveChangesAsync();
+        var antes = await db.MovimientosStock.CountAsync();
+
+        var ex = await Assert.ThrowsAsync<AppException>(() => service.RegistrarMovimientoAsync(
+            creado.Id,
+            new RegistrarMovimientoRequest { Tipo = "Salida", Cantidad = 1, ProveedorId = proveedor.Id },
+            admin.Id));
+
+        Assert.Equal(400, ex.StatusCode);
+        Assert.Equal(antes, await db.MovimientosStock.CountAsync());
+        Assert.Equal(8m, (await db.StockItems.SingleAsync()).CantidadActual);
+    }
+
+    [Fact]
+    public async Task Entrada_ProveedorInactivoOInexistente_400_SaldoIntacto()
+    {
+        var (service, db, admin) = CreateSut();
+        var creado = await service.CreateAsync(Item("Yerba", "Kg", cantidadInicial: 3), admin.Id);
+        var inactivo = new Proveedor { Nombre = "Baja", Activo = false };
+        db.Proveedores.Add(inactivo);
+        await db.SaveChangesAsync();
+        var antes = await db.MovimientosStock.CountAsync();
+
+        var exInactivo = await Assert.ThrowsAsync<AppException>(() => service.RegistrarMovimientoAsync(
+            creado.Id,
+            new RegistrarMovimientoRequest { Tipo = "Entrada", Cantidad = 2, ProveedorId = inactivo.Id },
+            admin.Id));
+        var exInexistente = await Assert.ThrowsAsync<AppException>(() => service.RegistrarMovimientoAsync(
+            creado.Id,
+            new RegistrarMovimientoRequest { Tipo = "Entrada", Cantidad = 2, ProveedorId = 9999 },
+            admin.Id));
+
+        Assert.Equal(400, exInactivo.StatusCode);
+        Assert.Equal(400, exInexistente.StatusCode);
+        Assert.Equal(antes, await db.MovimientosStock.CountAsync());
+        Assert.Equal(3m, (await db.StockItems.SingleAsync()).CantidadActual);
     }
 
     [Fact]

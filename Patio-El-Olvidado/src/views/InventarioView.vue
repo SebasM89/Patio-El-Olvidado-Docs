@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { inventarioService } from '../services/inventarioService'
+import { proveedorService } from '../services/proveedorService'
+import type { Proveedor } from '../types/proveedor'
 import type {
   CreateStockItemPayload,
   MovimientoStock,
@@ -62,7 +64,9 @@ const movForm = reactive({
   tipo: 'Entrada' as TipoMovimientoStock,
   cantidad: null as number | null,
   motivo: '',
+  proveedorId: null as number | null,
 })
+const proveedoresActivos = ref<Proveedor[]>([])
 
 const historialVisible = ref(false)
 const historialItem = ref<StockItem | null>(null)
@@ -173,10 +177,16 @@ async function desactivar(item: StockItem) {
   }
 }
 
-function openMovimiento(item: StockItem) {
+async function openMovimiento(item: StockItem) {
   movItem.value = item
-  Object.assign(movForm, { tipo: 'Entrada', cantidad: null, motivo: '' })
+  Object.assign(movForm, { tipo: 'Entrada', cantidad: null, motivo: '', proveedorId: null })
   movVisible.value = true
+  try {
+    const { data } = await proveedorService.list({ activo: true })
+    proveedoresActivos.value = data
+  } catch {
+    proveedoresActivos.value = []
+  }
 }
 
 async function registrarMovimiento() {
@@ -187,6 +197,7 @@ async function registrarMovimiento() {
     tipo: movForm.tipo,
     cantidad: Number(movForm.cantidad),
     motivo: movForm.motivo.trim() || null,
+    proveedorId: movForm.tipo === 'Entrada' ? movForm.proveedorId : null,
   }
   try {
     await inventarioService.registrarMovimiento(movItem.value.id, payload)
@@ -401,6 +412,20 @@ onMounted(load)
           required
         />
 
+        <template v-if="movForm.tipo === 'Entrada'">
+          <label for="proveedor">Proveedor (opcional)</label>
+          <Select
+            id="proveedor"
+            v-model="movForm.proveedorId"
+            :options="proveedoresActivos"
+            option-label="nombre"
+            option-value="id"
+            placeholder="Sin proveedor"
+            show-clear
+            class="w-full"
+          />
+        </template>
+
         <label for="motivo">Motivo</label>
         <InputText id="motivo" v-model="movForm.motivo" class="w-full" />
 
@@ -427,6 +452,9 @@ onMounted(load)
         </Column>
         <Column header="Motivo">
           <template #body="{ data }">{{ data.motivo || '—' }}</template>
+        </Column>
+        <Column header="Proveedor">
+          <template #body="{ data }">{{ data.proveedorNombre || '—' }}</template>
         </Column>
         <Column header="Registró">
           <template #body="{ data }">{{ data.registradoPorNombre || '—' }}</template>

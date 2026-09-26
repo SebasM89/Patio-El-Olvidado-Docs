@@ -162,10 +162,21 @@
 - motivo NVARCHAR(200) NULL
 - fechaUtc DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 - registradoPorUsuarioId INT NOT NULL, FK Usuarios ON DELETE NO ACTION
+- proveedorId INT NULL, FK Proveedores ON DELETE NO ACTION. Solo entradas: CHECK CK_MovimientosStock_ProveedorSoloEntrada (ProveedorId IS NULL OR Tipo = N'Entrada')
 - índice IX_MovimientosStock_StockItemId_FechaUtc (StockItemId, FechaUtc DESC)
+- índice filtrado IX_MovimientosStock_ProveedorId (ProveedorId) WHERE ProveedorId IS NOT NULL
 - Sin semilla.
 
-## Proveedor
+## Proveedor (tabla Proveedores)
+- id INT IDENTITY PK
+- nombre NVARCHAR(100) NOT NULL, único (UX_Proveedores_Nombre)
+- contacto NVARCHAR(100) NULL
+- telefono NVARCHAR(30) NULL
+- email NVARCHAR(150) NULL, sin único
+- notas NVARCHAR(300) NULL
+- activo BIT NOT NULL DEFAULT 1
+- índice IX_Proveedores_Activo (Activo)
+- Sin ROWVERSION, sin semilla, sin CUIT.
 
 ## Promocion
 

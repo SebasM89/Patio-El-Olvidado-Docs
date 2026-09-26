@@ -27,3 +27,6 @@ La cantidad actual de un ítem solo cambia al registrar un movimiento, en la mis
 
 RN-10
 Solo el administrador crea, edita y registra movimientos de inventario. El empleado consulta. El cliente no accede.
+
+RN-11
+Solo el administrador crea, edita y da de baja lógica a proveedores (Activo). El empleado consulta. El cliente no accede. Una salida de stock no lleva proveedor. Si el movimiento indica proveedor, debe existir y estar activo. El vínculo se fija al insertar el movimiento y no se modifica.

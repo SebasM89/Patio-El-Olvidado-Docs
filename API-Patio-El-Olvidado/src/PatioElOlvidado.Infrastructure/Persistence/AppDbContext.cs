@@ -28,6 +28,7 @@ public class AppDbContext : DbContext
     public DbSet<Reserva> Reservas => Set<Reserva>();
     public DbSet<StockItem> StockItems => Set<StockItem>();
     public DbSet<MovimientoStock> MovimientosStock => Set<MovimientoStock>();
+    public DbSet<Proveedor> Proveedores => Set<Proveedor>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -376,6 +377,9 @@ public class AppDbContext : DbContext
                     "CK_MovimientosStock_Tipo",
                     "[Tipo] IN (N'Entrada', N'Salida')");
                 t.HasCheckConstraint("CK_MovimientosStock_Cantidad", "[Cantidad] > 0");
+                t.HasCheckConstraint(
+                    "CK_MovimientosStock_ProveedorSoloEntrada",
+                    "[ProveedorId] IS NULL OR [Tipo] = N'Entrada'");
             });
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Tipo)
@@ -393,6 +397,9 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => new { x.StockItemId, x.FechaUtc })
                 .IsDescending(false, true)
                 .HasDatabaseName("IX_MovimientosStock_StockItemId_FechaUtc");
+            entity.HasIndex(x => x.ProveedorId)
+                .HasFilter("[ProveedorId] IS NOT NULL")
+                .HasDatabaseName("IX_MovimientosStock_ProveedorId");
             entity.HasOne(x => x.StockItem)
                 .WithMany(x => x.Movimientos)
                 .HasForeignKey(x => x.StockItemId)
@@ -403,6 +410,30 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.RegistradoPorUsuarioId)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_MovimientosStock_Usuarios");
+            entity.HasOne(x => x.Proveedor)
+                .WithMany(x => x.Movimientos)
+                .HasForeignKey(x => x.ProveedorId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_MovimientosStock_Proveedores");
+        });
+
+        modelBuilder.Entity<Proveedor>(entity =>
+        {
+            entity.ToTable("Proveedores");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nombre).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Contacto).HasMaxLength(100);
+            entity.Property(x => x.Telefono).HasMaxLength(30);
+            entity.Property(x => x.Email).HasMaxLength(150);
+            entity.Property(x => x.Notas).HasMaxLength(300);
+            entity.Property(x => x.Activo)
+                .IsRequired()
+                .HasDefaultValue(true);
+            entity.HasIndex(x => x.Nombre)
+                .IsUnique()
+                .HasDatabaseName("UX_Proveedores_Nombre");
+            entity.HasIndex(x => x.Activo)
+                .HasDatabaseName("IX_Proveedores_Activo");
         });
     }
 }

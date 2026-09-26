@@ -10,6 +10,7 @@ namespace PatioElOlvidado.Application.Services;
 /// <summary>
 /// RN-09: CantidadActual solo cambia junto con un movimiento, en la misma transacción.
 /// RN-10: la autorización (Admin muta, Empleado consulta) está en el controller.
+/// RN-11: proveedor opcional solo en Entrada; debe existir y estar activo. El vínculo no se edita.
 /// </summary>
 public class InventarioService : IInventarioService
 {
@@ -18,18 +19,21 @@ public class InventarioService : IInventarioService
     private readonly IStockItemRepository _items;
     private readonly IMovimientoStockRepository _movimientos;
     private readonly IUsuarioRepository _usuarios;
+    private readonly IProveedorRepository _proveedores;
     private readonly IUnitOfWork _unitOfWork;
 
     public InventarioService(
         IStockItemRepository items,
         IMovimientoStockRepository movimientos,
         IUsuarioRepository usuarios,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IProveedorRepository proveedores)
     {
         _items = items;
         _movimientos = movimientos;
         _usuarios = usuarios;
         _unitOfWork = unitOfWork;
+        _proveedores = proveedores;
     }
 
     public async Task<IReadOnlyList<StockItemDto>> ListAsync(
@@ -197,6 +201,8 @@ public class InventarioService : IInventarioService
         if (request.Cantidad <= 0)
             throw new AppException("La cantidad debe ser mayor a cero.", StatusCodes.Status400BadRequest);
 
+        var proveedor = await RequireProveedorSiCorrespondeAsync(tipo, request.ProveedorId, cancellationToken);
+
         if (tipo == TipoMovimientoStock.Salida && request.Cantidad > item.CantidadActual)
             throw new AppException("La salida supera el saldo disponible.", StatusCodes.Status400BadRequest);
 
@@ -218,7 +224,9 @@ public class InventarioService : IInventarioService
             Motivo = NormalizeOptional(request.Motivo),
             FechaUtc = DateTime.UtcNow,
             RegistradoPorUsuarioId = usuario.Id,
-            RegistradoPorUsuario = usuario
+            RegistradoPorUsuario = usuario,
+            ProveedorId = proveedor?.Id,
+            Proveedor = proveedor
         };
 
         item.CantidadActual = nuevoSaldo;
@@ -241,6 +249,28 @@ public class InventarioService : IInventarioService
 
         if (duplicado)
             throw new AppException("Ya existe un ítem con ese nombre.", StatusCodes.Status409Conflict);
+    }
+
+    /// <summary>
+    /// Null no vincula proveedor. Salida con id rechaza. Entrada exige proveedor existente y activo.
+    /// Se resuelve antes de tocar el saldo.
+    /// </summary>
+    private async Task<Proveedor?> RequireProveedorSiCorrespondeAsync(
+        TipoMovimientoStock tipo,
+        int? proveedorId,
+        CancellationToken cancellationToken)
+    {
+        if (!proveedorId.HasValue)
+            return null;
+
+        if (tipo == TipoMovimientoStock.Salida)
+            throw new AppException("Una salida no lleva proveedor.", StatusCodes.Status400BadRequest);
+
+        var proveedor = await _proveedores.GetByIdAsync(proveedorId.Value, cancellationToken);
+        if (proveedor is null || !proveedor.Activo)
+            throw new AppException("El proveedor no existe o no está activo.", StatusCodes.Status400BadRequest);
+
+        return proveedor;
     }
 
     private async Task<Usuario> RequireUsuarioAsync(int usuarioId, CancellationToken cancellationToken)
@@ -299,7 +329,9 @@ public class InventarioService : IInventarioService
         Motivo = movimiento.Motivo,
         FechaUtc = movimiento.FechaUtc,
         RegistradoPorUsuarioId = movimiento.RegistradoPorUsuarioId,
-        RegistradoPorNombre = registradoPorNombre
+        RegistradoPorNombre = registradoPorNombre,
+        ProveedorId = movimiento.ProveedorId,
+        ProveedorNombre = movimiento.Proveedor?.Nombre
     };
 
     private static class StatusCodes

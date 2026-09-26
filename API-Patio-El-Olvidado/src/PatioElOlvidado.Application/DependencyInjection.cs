@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<IReservaService, ReservaService>();
         services.AddScoped<IUsuarioService, UsuarioService>();
         services.AddScoped<IInventarioService, InventarioService>();
+        services.AddScoped<IProveedorService, ProveedorService>();
         services.AddValidatorsFromAssemblyContaining<AuthService>();
         return services;
     }

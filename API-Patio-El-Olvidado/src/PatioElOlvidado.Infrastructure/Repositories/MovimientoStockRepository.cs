@@ -18,6 +18,7 @@ public class MovimientoStockRepository : IMovimientoStockRepository
         int stockItemId,
         CancellationToken cancellationToken = default)
         => await _db.MovimientosStock
+            .Include(x => x.Proveedor)
             .Where(x => x.StockItemId == stockItemId)
             .OrderByDescending(x => x.FechaUtc)
             .ToListAsync(cancellationToken);

@@ -105,6 +105,20 @@ async function onLogout() {
             }}
           </span>
         </RouterLink>
+        <RouterLink
+          v-if="auth.rol === 'Admin' || auth.rol === 'Empleado'"
+          to="/proveedores"
+          class="nav-card"
+        >
+          <span class="nav-title">Proveedores</span>
+          <span class="nav-desc">
+            {{
+              auth.rol === 'Admin'
+                ? 'Alta, edición y baja lógica del catálogo (RN-11)'
+                : 'Consulta del catálogo de proveedores (RN-11)'
+            }}
+          </span>
+        </RouterLink>
         <RouterLink v-if="auth.rol === 'Admin'" to="/reportes" class="nav-card">
           <span class="nav-title">Reportes</span>
           <span class="nav-desc">Ventas, caja y nómina por rango (CU11)</span>
