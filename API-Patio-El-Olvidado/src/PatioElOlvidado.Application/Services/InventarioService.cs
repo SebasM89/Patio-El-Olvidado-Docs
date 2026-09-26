@@ -1,5 +1,7 @@
+using System.Globalization;
 using PatioElOlvidado.Application.Common;
 using PatioElOlvidado.Application.DTOs.Inventario;
+using PatioElOlvidado.Application.DTOs.Usuarios;
 using PatioElOlvidado.Application.Interfaces;
 using PatioElOlvidado.Application.Validators;
 using PatioElOlvidado.Domain.Entities;
@@ -11,15 +13,18 @@ namespace PatioElOlvidado.Application.Services;
 /// RN-09: CantidadActual solo cambia junto con un movimiento, en la misma transacción.
 /// RN-10: la autorización (Admin muta, Empleado consulta) está en el controller.
 /// RN-11: proveedor opcional solo en Entrada; debe existir y estar activo. El vínculo no se edita.
+/// RN-12: el cruce a alerta inserta un aviso por admin activo, en la misma transacción, antes de guardar.
 /// </summary>
 public class InventarioService : IInventarioService
 {
     public const string MotivoAltaInicial = "Alta inicial";
+    public const string TituloStockAlerta = "Stock en alerta";
 
     private readonly IStockItemRepository _items;
     private readonly IMovimientoStockRepository _movimientos;
     private readonly IUsuarioRepository _usuarios;
     private readonly IProveedorRepository _proveedores;
+    private readonly INotificacionRepository _notificaciones;
     private readonly IUnitOfWork _unitOfWork;
 
     public InventarioService(
@@ -27,13 +32,15 @@ public class InventarioService : IInventarioService
         IMovimientoStockRepository movimientos,
         IUsuarioRepository usuarios,
         IUnitOfWork unitOfWork,
-        IProveedorRepository proveedores)
+        IProveedorRepository proveedores,
+        INotificacionRepository notificaciones)
     {
         _items = items;
         _movimientos = movimientos;
         _usuarios = usuarios;
         _unitOfWork = unitOfWork;
         _proveedores = proveedores;
+        _notificaciones = notificaciones;
     }
 
     public async Task<IReadOnlyList<StockItemDto>> ListAsync(
@@ -195,6 +202,8 @@ public class InventarioService : IInventarioService
         if (!item.Activo)
             throw new AppException("Un ítem inactivo no acepta movimientos.", StatusCodes.Status400BadRequest);
 
+        var estabaEnAlerta = EstaEnAlerta(item);
+
         if (!InventarioEnumParser.TryParseTipo(request.Tipo, out var tipo))
             throw new AppException("El tipo debe ser Entrada o Salida.", StatusCodes.Status400BadRequest);
 
@@ -232,10 +241,55 @@ public class InventarioService : IInventarioService
         item.CantidadActual = nuevoSaldo;
         await _movimientos.AddAsync(movimiento, cancellationToken);
         await _items.UpdateAsync(item, cancellationToken);
+
+        if (!estabaEnAlerta && EstaEnAlerta(item))
+            await GenerarAlertasStockAsync(item, movimiento, cancellationToken);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return MapMovimiento(movimiento, usuario.Nombre);
     }
+
+    /// <summary>
+    /// Un aviso por admin activo. Cero destinatarios no aborta el movimiento.
+    /// El alta, la edición del mínimo y una salida rechazada no llegan acá.
+    /// </summary>
+    private async Task GenerarAlertasStockAsync(
+        StockItem item,
+        MovimientoStock movimiento,
+        CancellationToken cancellationToken)
+    {
+        var admins = await _usuarios.SearchAsync(
+            new UsuarioFilterQuery { Rol = RolesSistema.Admin, Estado = UsuarioEstado.Activo },
+            cancellationToken);
+
+        var mensaje = MensajeStockAlerta(item);
+        foreach (var admin in admins)
+        {
+            await _notificaciones.AddAsync(new Notificacion
+            {
+                UsuarioId = admin.Id,
+                Titulo = TituloStockAlerta,
+                Mensaje = mensaje,
+                Tipo = TipoNotificacion.StockAlerta,
+                Leida = false,
+                FechaUtc = movimiento.FechaUtc,
+                StockItemId = item.Id,
+                StockItem = item,
+                MovimientoStock = movimiento
+            }, cancellationToken);
+        }
+    }
+
+    private static string MensajeStockAlerta(StockItem item)
+    {
+        var mensaje =
+            $"{item.Nombre} quedó con saldo {FormatoCantidad(item.CantidadActual)} {item.Unidad} (mínimo {FormatoCantidad(item.StockMinimo)}).";
+        return mensaje.Length <= 500 ? mensaje : mensaje[..500];
+    }
+
+    private static string FormatoCantidad(decimal value)
+        => value.ToString("0.###", CultureInfo.InvariantCulture);
 
     private async Task EnsureNombreUnicoAsync(
         string nombre,

@@ -20,7 +20,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Patio El Olvidado API",
         Version = "v1",
-        Description = "API del sistema integral — Auth + Menú (RF-02) + Pedidos (RF-03) + Reservas (CU08) + Inventario (RF-08) + Proveedores (RN-11)"
+        Description = "API del sistema integral — Auth + Menú (RF-02) + Pedidos (RF-03) + Reservas (CU08) + Inventario (RF-08) + Proveedores (RN-11) + Notificaciones (RF-09)"
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

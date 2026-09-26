@@ -114,6 +114,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/notificaciones',
+      name: 'notificaciones',
+      component: () => import('../views/NotificacionesView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Empleado'],
+      },
+    },
+    {
       path: '/reportes',
       name: 'reportes',
       component: () => import('../views/ReportesView.vue'),

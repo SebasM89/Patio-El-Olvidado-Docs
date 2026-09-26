@@ -126,6 +126,18 @@ body {
   font-weight: 650;
 }
 
+.nav-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: #b45309;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 650;
+  vertical-align: middle;
+}
+
 .nav-desc {
   font-size: 0.875rem;
   color: #78716c;

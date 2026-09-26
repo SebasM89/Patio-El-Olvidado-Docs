@@ -368,3 +368,26 @@ IF NOT EXISTS (
             ON MovimientosStock(ProveedorId)
             WHERE ProveedorId IS NOT NULL;
     ');
+
+-- Tabla Notificaciones. Sin semilla, sin ROWVERSION.
+-- No altera StockItems ni MovimientosStock.
+CREATE TABLE Notificaciones (
+    Id INT NOT NULL IDENTITY(1,1),
+    UsuarioId INT NOT NULL,
+    Titulo NVARCHAR(120) NOT NULL,
+    Mensaje NVARCHAR(500) NOT NULL,
+    Tipo NVARCHAR(20) NOT NULL,
+    Leida BIT NOT NULL CONSTRAINT DF_Notificaciones_Leida DEFAULT (0),
+    LeidaUtc DATETIME2 NULL,
+    FechaUtc DATETIME2 NOT NULL CONSTRAINT DF_Notificaciones_FechaUtc DEFAULT (SYSUTCDATETIME()),
+    StockItemId INT NOT NULL,
+    MovimientoStockId INT NOT NULL,
+    CONSTRAINT PK_Notificaciones PRIMARY KEY (Id),
+    CONSTRAINT FK_Notificaciones_Usuarios FOREIGN KEY (UsuarioId) REFERENCES Usuarios(Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_Notificaciones_StockItems FOREIGN KEY (StockItemId) REFERENCES StockItems(Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_Notificaciones_MovimientosStock FOREIGN KEY (MovimientoStockId) REFERENCES MovimientosStock(Id) ON DELETE NO ACTION,
+    CONSTRAINT CK_Notificaciones_Tipo CHECK (Tipo IN (N'StockAlerta'))
+);
+CREATE INDEX IX_Notificaciones_UsuarioId_FechaUtc ON Notificaciones(UsuarioId, FechaUtc DESC);
+CREATE INDEX IX_Notificaciones_UsuarioId_NoLeidas ON Notificaciones(UsuarioId) WHERE Leida = 0;
+CREATE UNIQUE INDEX UX_Notificaciones_Usuario_Movimiento ON Notificaciones(UsuarioId, MovimientoStockId);

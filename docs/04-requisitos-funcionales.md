@@ -47,3 +47,8 @@
 - Catálogo de proveedores (alta, edición, baja lógica y consulta)
 - Reposición: entrada de stock con proveedor opcional
 - Alertas cuando el saldo es menor o igual al mínimo
+
+# RF-09 Notificaciones
+- Bandeja in-app de avisos de stock en alerta
+- Consulta de las propias y conteo de no leídas
+- Marcar un aviso propio como leído

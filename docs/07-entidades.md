@@ -187,4 +187,18 @@
 - ubicacion (opcional)
 - Sin Activo y sin CRUD. Catálogo semilla: números 1–4, capacidades 2, 4, 4, 6.
 
-## Notificacion
+## Notificacion (tabla Notificaciones)
+- id INT IDENTITY PK
+- usuarioId INT NOT NULL, FK Usuarios ON DELETE NO ACTION
+- titulo NVARCHAR(120) NOT NULL
+- mensaje NVARCHAR(500) NOT NULL
+- tipo NVARCHAR(20) NOT NULL, nombre del enum (solo StockAlerta). CHECK CK_Notificaciones_Tipo
+- leida BIT NOT NULL DEFAULT 0
+- leidaUtc DATETIME2 NULL
+- fechaUtc DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+- stockItemId INT NOT NULL, FK StockItems ON DELETE NO ACTION
+- movimientoStockId INT NOT NULL, FK MovimientosStock ON DELETE NO ACTION
+- índice IX_Notificaciones_UsuarioId_FechaUtc (UsuarioId, FechaUtc DESC)
+- índice filtrado IX_Notificaciones_UsuarioId_NoLeidas (UsuarioId) WHERE Leida = 0
+- único UX_Notificaciones_Usuario_Movimiento (UsuarioId, MovimientoStockId)
+- Sin ROWVERSION, sin semilla. No agrega columnas a StockItems ni a MovimientosStock.

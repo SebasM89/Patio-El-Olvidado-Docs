@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { notificacionService } from '../services/notificacionService'
 import Button from 'primevue/button'
 
 const auth = useAuthStore()
 const router = useRouter()
+const esStaff = computed(() => auth.rol === 'Admin' || auth.rol === 'Empleado')
+const noLeidas = ref<number | null>(null)
 
 const rolLabel = computed(() => auth.rol ?? 'Sin rol')
 const welcome = computed(() => {
@@ -21,10 +24,25 @@ const welcome = computed(() => {
   }
 })
 
+const conteoTexto = computed(() => {
+  if (noLeidas.value === null) return 'Avisos de stock en alerta'
+  return `Avisos de stock en alerta. Sin leer: ${noLeidas.value}`
+})
+
 async function onLogout() {
   await auth.logout()
   await router.push('/login')
 }
+
+onMounted(async () => {
+  if (!esStaff.value) return
+  try {
+    const { data } = await notificacionService.conteo()
+    noLeidas.value = data.cantidad
+  } catch {
+    noLeidas.value = null
+  }
+})
 </script>
 
 <template>
@@ -118,6 +136,17 @@ async function onLogout() {
                 : 'Consulta del catálogo de proveedores (RN-11)'
             }}
           </span>
+        </RouterLink>
+        <RouterLink
+          v-if="esStaff"
+          to="/notificaciones"
+          class="nav-card"
+        >
+          <span class="nav-title">
+            Notificaciones
+            <span v-if="noLeidas" class="nav-badge">{{ noLeidas }}</span>
+          </span>
+          <span class="nav-desc">{{ conteoTexto }}</span>
         </RouterLink>
         <RouterLink v-if="auth.rol === 'Admin'" to="/reportes" class="nav-card">
           <span class="nav-title">Reportes</span>

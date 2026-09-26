@@ -29,6 +29,7 @@ public class AppDbContext : DbContext
     public DbSet<StockItem> StockItems => Set<StockItem>();
     public DbSet<MovimientoStock> MovimientosStock => Set<MovimientoStock>();
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
+    public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -434,6 +435,54 @@ public class AppDbContext : DbContext
                 .HasDatabaseName("UX_Proveedores_Nombre");
             entity.HasIndex(x => x.Activo)
                 .HasDatabaseName("IX_Proveedores_Activo");
+        });
+
+        modelBuilder.Entity<Notificacion>(entity =>
+        {
+            entity.ToTable("Notificaciones", t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_Notificaciones_Tipo",
+                    "[Tipo] IN (N'StockAlerta')");
+            });
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Titulo).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Mensaje).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.Tipo)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
+            entity.Property(x => x.Leida)
+                .IsRequired()
+                .HasDefaultValue(false);
+            entity.Property(x => x.FechaUtc)
+                .HasDefaultValueSql("SYSUTCDATETIME()")
+                .ValueGeneratedOnAdd()
+                .IsRequired();
+            entity.HasIndex(x => new { x.UsuarioId, x.FechaUtc })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_Notificaciones_UsuarioId_FechaUtc");
+            entity.HasIndex(x => x.UsuarioId)
+                .HasFilter("[Leida] = 0")
+                .HasDatabaseName("IX_Notificaciones_UsuarioId_NoLeidas");
+            entity.HasIndex(x => new { x.UsuarioId, x.MovimientoStockId })
+                .IsUnique()
+                .HasDatabaseName("UX_Notificaciones_Usuario_Movimiento");
+            entity.HasOne(x => x.Usuario)
+                .WithMany()
+                .HasForeignKey(x => x.UsuarioId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_Notificaciones_Usuarios");
+            entity.HasOne(x => x.StockItem)
+                .WithMany()
+                .HasForeignKey(x => x.StockItemId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_Notificaciones_StockItems");
+            entity.HasOne(x => x.MovimientoStock)
+                .WithMany()
+                .HasForeignKey(x => x.MovimientoStockId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_Notificaciones_MovimientosStock");
         });
     }
 }

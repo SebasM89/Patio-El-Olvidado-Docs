@@ -30,3 +30,6 @@ Solo el administrador crea, edita y registra movimientos de inventario. El emple
 
 RN-11
 Solo el administrador crea, edita y da de baja lógica a proveedores (Activo). El empleado consulta. El cliente no accede. Una salida de stock no lleva proveedor. Si el movimiento indica proveedor, debe existir y estar activo. El vínculo se fija al insertar el movimiento y no se modifica.
+
+RN-12
+Cuando un movimiento deja un ítem activo en alerta (saldo menor o igual al mínimo) y antes no lo estaba, se graba un aviso in-app por cada usuario con rol Admin y estado Activo, en la misma transacción. Si ya estaba en alerta, no se duplica. Una salida rechazada por saldo, el alta inicial, la edición del mínimo y una entrada que no cruza el umbral no generan aviso. Sin administradores activos el movimiento igual se registra. No hay correo, alta manual ni borrado. Admin y Empleado consultan y marcan como leídas solo las propias. El cliente no accede.

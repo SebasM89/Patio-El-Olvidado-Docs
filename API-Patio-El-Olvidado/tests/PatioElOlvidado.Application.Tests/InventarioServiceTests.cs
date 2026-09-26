@@ -39,7 +39,8 @@ public class InventarioServiceTests
             new MovimientoStockRepository(db),
             new UsuarioRepository(db),
             new UnitOfWork(db),
-            new ProveedorRepository(db));
+            new ProveedorRepository(db),
+            new NotificacionRepository(db));
 
         return (service, db, admin);
     }
@@ -305,6 +306,136 @@ public class InventarioServiceTests
     }
 
     [Fact]
+    public async Task TransicionAAlerta_GeneraAvisoSoloParaAdminsActivos()
+    {
+        var (service, db, admin) = CreateSut();
+        var rolEmpleado = new Rol { Nombre = RolesSistema.Empleado, Descripcion = "Empleado" };
+        var rolCliente = new Rol { Nombre = RolesSistema.Cliente, Descripcion = "Cliente" };
+        db.Roles.AddRange(rolEmpleado, rolCliente);
+        await db.SaveChangesAsync();
+
+        var adminDos = UsuarioDe(admin.RolId, "Admin Dos", "admin2@test.local", UsuarioEstado.Activo);
+        db.Usuarios.AddRange(
+            adminDos,
+            UsuarioDe(admin.RolId, "Admin Off", "off@test.local", UsuarioEstado.Inactivo),
+            UsuarioDe(admin.RolId, "Admin Block", "block@test.local", UsuarioEstado.Bloqueado),
+            UsuarioDe(rolEmpleado.Id, "Emi", "emi@test.local", UsuarioEstado.Activo),
+            UsuarioDe(rolCliente.Id, "Cli", "cli@test.local", UsuarioEstado.Activo));
+        await db.SaveChangesAsync();
+
+        var creado = await service.CreateAsync(Item("Harina", "Kg", cantidadInicial: 10, stockMinimo: 3), admin.Id);
+        Assert.Empty(await db.Notificaciones.ToListAsync());
+
+        var mov = await service.RegistrarMovimientoAsync(creado.Id, new RegistrarMovimientoRequest
+        {
+            Tipo = "Salida",
+            Cantidad = 8
+        }, admin.Id);
+
+        var avisos = await db.Notificaciones.OrderBy(n => n.UsuarioId).ToListAsync();
+        Assert.Equal(2, avisos.Count);
+        Assert.Equal(new[] { admin.Id, adminDos.Id }.OrderBy(id => id), avisos.Select(n => n.UsuarioId).OrderBy(id => id));
+        Assert.All(avisos, n =>
+        {
+            Assert.Equal(InventarioService.TituloStockAlerta, n.Titulo);
+            Assert.Equal("Harina quedó con saldo 2 Kg (mínimo 3).", n.Mensaje);
+            Assert.Equal(TipoNotificacion.StockAlerta, n.Tipo);
+            Assert.False(n.Leida);
+            Assert.Null(n.LeidaUtc);
+            Assert.Equal(creado.Id, n.StockItemId);
+            Assert.Equal(mov.Id, n.MovimientoStockId);
+            Assert.True(n.MovimientoStockId > 0);
+        });
+    }
+
+    [Fact]
+    public async Task YaEnAlerta_NoDuplicaAviso()
+    {
+        var (service, db, admin) = CreateSut();
+        var creado = await service.CreateAsync(Item("Harina", "Kg", cantidadInicial: 10, stockMinimo: 3), admin.Id);
+
+        await service.RegistrarMovimientoAsync(creado.Id, new RegistrarMovimientoRequest
+        {
+            Tipo = "Salida",
+            Cantidad = 8
+        }, admin.Id);
+        Assert.Equal(1, await db.Notificaciones.CountAsync());
+
+        await service.RegistrarMovimientoAsync(creado.Id, new RegistrarMovimientoRequest
+        {
+            Tipo = "Salida",
+            Cantidad = 1
+        }, admin.Id);
+
+        Assert.Equal(1, await db.Notificaciones.CountAsync());
+        var item = await service.GetByIdAsync(creado.Id);
+        Assert.True(item!.EnAlerta);
+        Assert.Equal(1m, item.CantidadActual);
+    }
+
+    [Fact]
+    public async Task SalidaRechazadaPorSaldo_NoGeneraAviso()
+    {
+        var (service, db, admin) = CreateSut();
+        var creado = await service.CreateAsync(Item("Sal", "Kg", cantidadInicial: 4, stockMinimo: 1), admin.Id);
+
+        var ex = await Assert.ThrowsAsync<AppException>(() => service.RegistrarMovimientoAsync(
+            creado.Id,
+            new RegistrarMovimientoRequest { Tipo = "Salida", Cantidad = 9 },
+            admin.Id));
+
+        Assert.Equal(400, ex.StatusCode);
+        Assert.Empty(await db.Notificaciones.ToListAsync());
+        Assert.Equal(4m, (await db.StockItems.SingleAsync()).CantidadActual);
+    }
+
+    [Fact]
+    public async Task EntradaSobreMinimo_AltaYEdicionDeMinimo_NoGeneranAviso()
+    {
+        var (service, db, admin) = CreateSut();
+
+        var alta = await service.CreateAsync(Item("Aceite", "L", cantidadInicial: 1, stockMinimo: 5), admin.Id);
+        Assert.True(alta.EnAlerta);
+        Assert.Empty(await db.Notificaciones.ToListAsync());
+
+        var arriba = await service.CreateAsync(Item("Arroz", "Kg", cantidadInicial: 10, stockMinimo: 2), admin.Id);
+        await service.RegistrarMovimientoAsync(arriba.Id, new RegistrarMovimientoRequest
+        {
+            Tipo = "Entrada",
+            Cantidad = 1
+        }, admin.Id);
+        Assert.False((await service.GetByIdAsync(arriba.Id))!.EnAlerta);
+
+        await service.UpdateAsync(arriba.Id, new UpdateStockItemRequest
+        {
+            Nombre = "Arroz",
+            StockMinimo = 20,
+            Activo = true
+        });
+        Assert.True((await service.GetByIdAsync(arriba.Id))!.EnAlerta);
+        Assert.Empty(await db.Notificaciones.ToListAsync());
+    }
+
+    [Fact]
+    public async Task SinAdminsActivos_ElMovimientoIgualQuedaRegistrado()
+    {
+        var (service, db, admin) = CreateSut();
+        admin.Estado = UsuarioEstado.Inactivo;
+        await db.SaveChangesAsync();
+
+        var creado = await service.CreateAsync(Item("Fideos", "Unidad", cantidadInicial: 5, stockMinimo: 1), admin.Id);
+        var mov = await service.RegistrarMovimientoAsync(creado.Id, new RegistrarMovimientoRequest
+        {
+            Tipo = "Salida",
+            Cantidad = 5
+        }, admin.Id);
+
+        Assert.Equal(0m, (await service.GetByIdAsync(creado.Id))!.CantidadActual);
+        Assert.True(mov.Id > 0);
+        Assert.Empty(await db.Notificaciones.ToListAsync());
+    }
+
+    [Fact]
     public void Dtos_NoExponenVersion()
     {
         Assert.Null(typeof(StockItemDto).GetProperty("Version"));
@@ -327,6 +458,15 @@ public class InventarioServiceTests
             StockMinimo = stockMinimo,
             Activo = true
         };
+
+    private static Usuario UsuarioDe(int rolId, string nombre, string email, string estado) => new()
+    {
+        Nombre = nombre,
+        Email = email,
+        PasswordHash = "hash",
+        RolId = rolId,
+        Estado = estado
+    };
 
     private static decimal Saldo(IEnumerable<MovimientoStock> movimientos)
         => movimientos.Where(m => m.Tipo == TipoMovimientoStock.Entrada).Sum(m => m.Cantidad)

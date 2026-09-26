@@ -11,6 +11,7 @@
 - Gestionar promociones
 - Gestionar inventario
 - Gestionar proveedores
+- Consultar notificaciones
 
 ## Empleado
 - Registrar horas
@@ -19,6 +20,7 @@
 - Ver menú
 - Consultar inventario
 - Consultar proveedores
+- Consultar notificaciones
 
 ## Cliente
 - Ver menú
