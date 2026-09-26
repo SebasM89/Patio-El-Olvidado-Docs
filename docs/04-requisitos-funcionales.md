@@ -52,3 +52,8 @@
 - Bandeja in-app de avisos de stock en alerta
 - Consulta de las propias y conteo de no leídas
 - Marcar un aviso propio como leído
+
+# RF-10 Promociones
+- Catálogo de avisos con vigencia
+- Alta, edición y baja lógica (administrador)
+- Consulta de activas vigentes (cliente)

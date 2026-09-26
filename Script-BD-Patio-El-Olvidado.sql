@@ -391,3 +391,21 @@ CREATE TABLE Notificaciones (
 CREATE INDEX IX_Notificaciones_UsuarioId_FechaUtc ON Notificaciones(UsuarioId, FechaUtc DESC);
 CREATE INDEX IX_Notificaciones_UsuarioId_NoLeidas ON Notificaciones(UsuarioId) WHERE Leida = 0;
 CREATE UNIQUE INDEX UX_Notificaciones_Usuario_Movimiento ON Notificaciones(UsuarioId, MovimientoStockId);
+
+-- Tabla Promociones. Sin FKs, sin semilla, sin ROWVERSION.
+-- Baja lógica: Activo = 0. Sin unicidad de Nombre. No agrega columnas a Pedidos.
+-- Idempotente: en una base ya creada solo crea la tabla si falta.
+IF OBJECT_ID(N'dbo.Promociones', N'U') IS NULL
+BEGIN
+    CREATE TABLE Promociones (
+        Id INT NOT NULL IDENTITY(1,1),
+        Nombre NVARCHAR(100) NOT NULL,
+        Descripcion NVARCHAR(500) NOT NULL,
+        VigenteDesde DATE NOT NULL,
+        VigenteHasta DATE NOT NULL,
+        Activo BIT NOT NULL CONSTRAINT DF_Promociones_Activo DEFAULT (1),
+        CONSTRAINT PK_Promociones PRIMARY KEY (Id),
+        CONSTRAINT CK_Promociones_Vigencia CHECK (VigenteHasta >= VigenteDesde)
+    );
+    CREATE INDEX IX_Promociones_Activo_Vigencia ON Promociones(Activo, VigenteDesde, VigenteHasta);
+END

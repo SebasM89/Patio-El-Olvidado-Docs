@@ -490,6 +490,24 @@ public static class DbSeeder
                     CREATE UNIQUE INDEX UX_Notificaciones_Usuario_Movimiento ON Notificaciones(UsuarioId, MovimientoStockId);
                 END
                 """);
+
+            // Promociones. Sin FKs, sin semilla, sin ROWVERSION. No altera otras tablas.
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.Promociones', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE Promociones (
+                        Id INT NOT NULL IDENTITY(1,1),
+                        Nombre NVARCHAR(100) NOT NULL,
+                        Descripcion NVARCHAR(500) NOT NULL,
+                        VigenteDesde DATE NOT NULL,
+                        VigenteHasta DATE NOT NULL,
+                        Activo BIT NOT NULL CONSTRAINT DF_Promociones_Activo DEFAULT (1),
+                        CONSTRAINT PK_Promociones PRIMARY KEY (Id),
+                        CONSTRAINT CK_Promociones_Vigencia CHECK (VigenteHasta >= VigenteDesde)
+                    );
+                    CREATE INDEX IX_Promociones_Activo_Vigencia ON Promociones(Activo, VigenteDesde, VigenteHasta);
+                END
+                """);
         }
 
         if (!await db.Mesas.AnyAsync())

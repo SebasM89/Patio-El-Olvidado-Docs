@@ -30,6 +30,7 @@ public class AppDbContext : DbContext
     public DbSet<MovimientoStock> MovimientosStock => Set<MovimientoStock>();
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
+    public DbSet<Promocion> Promociones => Set<Promocion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -483,6 +484,26 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.MovimientoStockId)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_Notificaciones_MovimientosStock");
+        });
+
+        modelBuilder.Entity<Promocion>(entity =>
+        {
+            entity.ToTable("Promociones", t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_Promociones_Vigencia",
+                    "[VigenteHasta] >= [VigenteDesde]");
+            });
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nombre).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Descripcion).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.VigenteDesde).HasColumnType("date").IsRequired();
+            entity.Property(x => x.VigenteHasta).HasColumnType("date").IsRequired();
+            entity.Property(x => x.Activo)
+                .IsRequired()
+                .HasDefaultValue(true);
+            entity.HasIndex(x => new { x.Activo, x.VigenteDesde, x.VigenteHasta })
+                .HasDatabaseName("IX_Promociones_Activo_Vigencia");
         });
     }
 }

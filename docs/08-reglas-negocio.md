@@ -33,3 +33,6 @@ Solo el administrador crea, edita y da de baja lógica a proveedores (Activo). E
 
 RN-12
 Cuando un movimiento deja un ítem activo en alerta (saldo menor o igual al mínimo) y antes no lo estaba, se graba un aviso in-app por cada usuario con rol Admin y estado Activo, en la misma transacción. Si ya estaba en alerta, no se duplica. Una salida rechazada por saldo, el alta inicial, la edición del mínimo y una entrada que no cruza el umbral no generan aviso. Sin administradores activos el movimiento igual se registra. No hay correo, alta manual ni borrado. Admin y Empleado consultan y marcan como leídas solo las propias. El cliente no accede.
+
+RN-13
+Solo el administrador crea, edita y da de baja lógica a promociones. El cliente consulta las activas cuya vigencia incluye la fecha UTC de hoy. El empleado no accede. Una promoción no modifica el subtotal ni el total del pedido y no se combina con el descuento de RN-05. No hay cupón, código ni campaña.

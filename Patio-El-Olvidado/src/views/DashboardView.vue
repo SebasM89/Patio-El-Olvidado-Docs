@@ -65,6 +65,20 @@ onMounted(async () => {
           <span class="nav-title">Gestión de menú</span>
           <span class="nav-desc">Ver catálogo{{ auth.rol === 'Admin' ? ' y administrar productos' : '' }}</span>
         </RouterLink>
+        <RouterLink
+          v-if="auth.rol === 'Admin' || auth.rol === 'Cliente'"
+          to="/promociones"
+          class="nav-card"
+        >
+          <span class="nav-title">Promociones</span>
+          <span class="nav-desc">
+            {{
+              auth.rol === 'Admin'
+                ? 'Avisos con vigencia: alta, edición y baja (RN-13)'
+                : 'Promociones vigentes hoy'
+            }}
+          </span>
+        </RouterLink>
         <RouterLink to="/pedidos" class="nav-card">
           <span class="nav-title">Pedidos</span>
           <span class="nav-desc">

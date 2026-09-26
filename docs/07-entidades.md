@@ -178,7 +178,18 @@
 - índice IX_Proveedores_Activo (Activo)
 - Sin ROWVERSION, sin semilla, sin CUIT.
 
-## Promocion
+## Promocion (tabla Promociones)
+- id INT IDENTITY PK
+- nombre NVARCHAR(100) NOT NULL
+- descripcion NVARCHAR(500) NOT NULL
+- vigenteDesde DATE NOT NULL
+- vigenteHasta DATE NOT NULL
+- activo BIT NOT NULL DEFAULT 1
+- CHECK CK_Promociones_Vigencia (VigenteHasta >= VigenteDesde)
+- índice IX_Promociones_Activo_Vigencia (Activo, VigenteDesde, VigenteHasta)
+- Sin FKs, sin unicidad de nombre, sin ROWVERSION, sin semilla
+- Baja lógica: Activo = 0. No hay DELETE físico en el esquema.
+- No agrega PromocionId ni columnas a Pedidos.
 
 ## Mesa
 - id

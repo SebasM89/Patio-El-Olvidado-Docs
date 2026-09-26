@@ -42,6 +42,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/promociones',
+      name: 'promociones',
+      component: () => import('../views/PromocionesView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Cliente'],
+      },
+    },
+    {
       path: '/pedidos',
       name: 'pedidos',
       component: () => import('../views/PedidosView.vue'),

@@ -11,3 +11,5 @@ CU10 Aplicar descuentos
 CU11 Generar reportes
 CU12 Gestionar inventario
 CU13 Consultar notificaciones
+CU14 Gestionar promociones
+CU15 Ver promociones vigentes
