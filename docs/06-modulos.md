@@ -14,4 +14,4 @@
 12. Proveedores
 13. Notificaciones
 14. Promociones
-15. Historia del restaurante
+15. Historia del restaurante (RF-11 / RN-14)

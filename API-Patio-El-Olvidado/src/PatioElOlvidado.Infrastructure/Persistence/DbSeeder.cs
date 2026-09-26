@@ -508,6 +508,41 @@ public static class DbSeeder
                     CREATE INDEX IX_Promociones_Activo_Vigencia ON Promociones(Activo, VigenteDesde, VigenteHasta);
                 END
                 """);
+
+            // HistoriaRestaurante. Singleton Id = 1. Sin IDENTITY, sin Activo, sin ROWVERSION, sin índices extra.
+            // INSERT solo si no existe Id = 1. No hay UPDATE: una fila ya editada conserva título y texto.
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.HistoriaRestaurante', N'U') IS NULL
+                   AND OBJECT_ID(N'dbo.Usuarios', N'U') IS NOT NULL
+                BEGIN
+                    CREATE TABLE dbo.HistoriaRestaurante (
+                        Id INT NOT NULL,
+                        Titulo NVARCHAR(120) NOT NULL,
+                        Texto NVARCHAR(4000) NOT NULL,
+                        ActualizadoUtc DATETIME2 NULL,
+                        ActualizadoPorUsuarioId INT NULL,
+                        CONSTRAINT PK_HistoriaRestaurante PRIMARY KEY (Id),
+                        CONSTRAINT CK_HistoriaRestaurante_Singleton CHECK (Id = 1),
+                        CONSTRAINT CK_HistoriaRestaurante_Titulo CHECK (LEN(Titulo) BETWEEN 1 AND 120),
+                        CONSTRAINT CK_HistoriaRestaurante_Texto CHECK (LEN(Texto) BETWEEN 1 AND 4000),
+                        CONSTRAINT FK_HistoriaRestaurante_Usuarios FOREIGN KEY (ActualizadoPorUsuarioId) REFERENCES dbo.Usuarios(Id) ON DELETE NO ACTION
+                    );
+                END
+                """);
+
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.HistoriaRestaurante', N'U') IS NOT NULL
+                   AND NOT EXISTS (SELECT 1 FROM dbo.HistoriaRestaurante WHERE Id = 1)
+                BEGIN
+                    INSERT INTO dbo.HistoriaRestaurante (Id, Titulo, Texto, ActualizadoUtc, ActualizadoPorUsuarioId)
+                    VALUES (
+                        1,
+                        N'Patio El Olvidado',
+                        N'Patio El Olvidado es el restaurante que este sistema administra. El administrador puede reemplazar este texto.',
+                        NULL,
+                        NULL);
+                END
+                """);
         }
 
         if (!await db.Mesas.AnyAsync())

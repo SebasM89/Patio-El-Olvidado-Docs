@@ -1,4 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using PatioElOlvidado.Domain.Entities;
 
 namespace PatioElOlvidado.Infrastructure.Persistence;
@@ -31,6 +36,14 @@ public class AppDbContext : DbContext
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
     public DbSet<Promocion> Promociones => Set<Promocion>();
+    public DbSet<HistoriaRestaurante> HistoriaRestaurante => Set<HistoriaRestaurante>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Conventions.Replace<ForeignKeyIndexConvention>(services =>
+            new HistoriaRestauranteForeignKeyIndexConvention(
+                services.GetRequiredService<ProviderConventionSetBuilderDependencies>()));
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -505,5 +518,55 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => new { x.Activo, x.VigenteDesde, x.VigenteHasta })
                 .HasDatabaseName("IX_Promociones_Activo_Vigencia");
         });
+
+        modelBuilder.Entity<HistoriaRestaurante>(entity =>
+        {
+            entity.ToTable("HistoriaRestaurante", t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_HistoriaRestaurante_Singleton",
+                    "[Id] = 1");
+                t.HasCheckConstraint(
+                    "CK_HistoriaRestaurante_Titulo",
+                    "LEN([Titulo]) BETWEEN 1 AND 120");
+                t.HasCheckConstraint(
+                    "CK_HistoriaRestaurante_Texto",
+                    "LEN([Texto]) BETWEEN 1 AND 4000");
+            });
+            entity.HasKey(x => x.Id).HasName("PK_HistoriaRestaurante");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.Titulo).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Texto).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.ActualizadoUtc).HasColumnType("datetime2");
+            entity.HasOne(x => x.ActualizadoPorUsuario)
+                .WithMany()
+                .HasForeignKey(x => x.ActualizadoPorUsuarioId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired(false)
+                .HasConstraintName("FK_HistoriaRestaurante_Usuarios");
+        });
+    }
+}
+
+/// <summary>
+/// EF crea un índice por cada FK. HistoriaRestaurante solo tiene la PK.
+/// El resto de las tablas conserva la convención original.
+/// </summary>
+file sealed class HistoriaRestauranteForeignKeyIndexConvention : ForeignKeyIndexConvention
+{
+    public HistoriaRestauranteForeignKeyIndexConvention(ProviderConventionSetBuilderDependencies dependencies)
+        : base(dependencies)
+    {
+    }
+
+    protected override IConventionIndex? CreateIndex(
+        IReadOnlyList<IConventionProperty> properties,
+        bool unique,
+        IConventionEntityTypeBuilder entityTypeBuilder)
+    {
+        if (entityTypeBuilder.Metadata.ClrType == typeof(HistoriaRestaurante))
+            return null;
+
+        return base.CreateIndex(properties, unique, entityTypeBuilder);
     }
 }

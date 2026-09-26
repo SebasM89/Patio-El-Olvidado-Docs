@@ -13,3 +13,5 @@ CU12 Gestionar inventario
 CU13 Consultar notificaciones
 CU14 Gestionar promociones
 CU15 Ver promociones vigentes
+CU16 Consultar historia del restaurante
+CU17 Editar historia del restaurante

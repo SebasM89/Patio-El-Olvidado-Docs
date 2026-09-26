@@ -150,6 +150,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/historia',
+      name: 'historia',
+      component: () => import('../views/HistoriaView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin', 'Empleado', 'Cliente'],
+      },
+    },
+    {
       path: '/mi-historial',
       name: 'mi-historial',
       component: () => import('../views/MiHistorialView.vue'),

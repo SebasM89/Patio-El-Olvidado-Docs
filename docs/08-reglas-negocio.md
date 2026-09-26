@@ -36,3 +36,6 @@ Cuando un movimiento deja un ítem activo en alerta (saldo menor o igual al mín
 
 RN-13
 Solo el administrador crea, edita y da de baja lógica a promociones. El cliente consulta las activas cuya vigencia incluye la fecha UTC de hoy. El empleado no accede. Una promoción no modifica el subtotal ni el total del pedido y no se combina con el descuento de RN-05. No hay cupón, código ni campaña.
+
+RN-14
+Hay una sola historia. Solo Admin edita título y texto. Admin, Empleado y Cliente autenticados consultan. No hay alta, baja ni lectura sin sesión. No es el historial de consumo (CU09 /mi-historial no se toca). El texto no modifica precios, pedidos ni promociones.

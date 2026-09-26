@@ -12,6 +12,8 @@
 - Gestionar inventario
 - Gestionar proveedores
 - Consultar notificaciones
+- Consultar historia del restaurante
+- Editar historia del restaurante
 
 ## Empleado
 - Registrar horas
@@ -21,6 +23,7 @@
 - Consultar inventario
 - Consultar proveedores
 - Consultar notificaciones
+- Consultar historia del restaurante
 
 ## Cliente
 - Ver menú
@@ -28,3 +31,4 @@
 - Reservar mesas
 - Consultar historial
 - Ver promociones
+- Consultar historia del restaurante

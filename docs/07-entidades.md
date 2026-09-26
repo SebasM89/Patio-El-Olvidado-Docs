@@ -213,3 +213,17 @@
 - índice filtrado IX_Notificaciones_UsuarioId_NoLeidas (UsuarioId) WHERE Leida = 0
 - único UX_Notificaciones_Usuario_Movimiento (UsuarioId, MovimientoStockId)
 - Sin ROWVERSION, sin semilla. No agrega columnas a StockItems ni a MovimientosStock.
+
+## HistoriaRestaurante (tabla dbo.HistoriaRestaurante)
+- Una sola fila. Sin IDENTITY, sin Activo, sin ROWVERSION, sin índices extra.
+- Id INT NOT NULL PK (PK_HistoriaRestaurante). CHECK CK_HistoriaRestaurante_Singleton (Id = 1)
+- Titulo NVARCHAR(120) NOT NULL. CHECK CK_HistoriaRestaurante_Titulo (LEN(Titulo) BETWEEN 1 AND 120)
+- Texto NVARCHAR(4000) NOT NULL. CHECK CK_HistoriaRestaurante_Texto (LEN(Texto) BETWEEN 1 AND 4000)
+- ActualizadoUtc DATETIME2 NULL (NULL en la semilla)
+- ActualizadoPorUsuarioId INT NULL, FK FK_HistoriaRestaurante_Usuarios → Usuarios(Id) ON DELETE NO ACTION (NULL en la semilla)
+- Semilla solo si no existe Id = 1. Si la fila ya existe, no se actualizan título ni texto:
+  - Id = 1
+  - Titulo = N'Patio El Olvidado'
+  - Texto = N'Patio El Olvidado es el restaurante que este sistema administra. El administrador puede reemplazar este texto.'
+  - ActualizadoUtc y ActualizadoPorUsuarioId NULL
+- No agrega columnas a Usuarios ni a otras tablas.

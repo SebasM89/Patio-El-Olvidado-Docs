@@ -57,3 +57,7 @@
 - Catálogo de avisos con vigencia
 - Alta, edición y baja lógica (administrador)
 - Consulta de activas vigentes (cliente)
+
+# RF-11 Historia del restaurante
+- Consulta de la única historia (administrador, empleado y cliente autenticados)
+- Edición de título y texto (solo administrador)

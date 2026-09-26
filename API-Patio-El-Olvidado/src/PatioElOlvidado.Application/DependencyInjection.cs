@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IProveedorService, ProveedorService>();
         services.AddScoped<INotificacionService, NotificacionService>();
         services.AddScoped<IPromocionService, PromocionService>();
+        services.AddScoped<IHistoriaService, HistoriaService>();
         services.AddValidatorsFromAssemblyContaining<AuthService>();
         return services;
     }
