@@ -32,6 +32,31 @@ public static class DbSeeder
         // EnsureCreated no altera BD ya existente: crear Productos / Pedidos si faltan
         if (db.Database.IsSqlServer())
         {
+            // Usuarios ya existe: solo check e índices que falten. No recrear UX_Usuarios_Email.
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.Usuarios', N'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM sys.check_constraints
+                        WHERE name = N'CK_Usuarios_Estado'
+                          AND parent_object_id = OBJECT_ID(N'dbo.Usuarios'))
+                        ALTER TABLE [dbo].[Usuarios] ADD CONSTRAINT [CK_Usuarios_Estado]
+                            CHECK ([Estado] IN (N'Activo', N'Inactivo', N'Bloqueado'));
+
+                    IF NOT EXISTS (
+                        SELECT 1 FROM sys.indexes
+                        WHERE name = N'IX_Usuarios_RolId'
+                          AND object_id = OBJECT_ID(N'dbo.Usuarios'))
+                        CREATE INDEX [IX_Usuarios_RolId] ON [dbo].[Usuarios]([RolId]);
+
+                    IF NOT EXISTS (
+                        SELECT 1 FROM sys.indexes
+                        WHERE name = N'IX_Usuarios_Estado'
+                          AND object_id = OBJECT_ID(N'dbo.Usuarios'))
+                        CREATE INDEX [IX_Usuarios_Estado] ON [dbo].[Usuarios]([Estado]);
+                END
+                """);
+
             await db.Database.ExecuteSqlRawAsync("""
                 IF OBJECT_ID(N'dbo.Productos', N'U') IS NULL
                 BEGIN
@@ -334,6 +359,48 @@ public static class DbSeeder
                     );
                     CREATE INDEX [IX_Reservas_MesaId_Fecha] ON [Reservas]([MesaId], [Fecha]);
                     CREATE INDEX [IX_Reservas_ClienteId] ON [Reservas]([ClienteId]);
+                END
+                """);
+
+            // StockItems / MovimientosStock. Sin semilla. Sin FK a Productos.
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'dbo.StockItems', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE StockItems (
+                        Id INT NOT NULL IDENTITY(1,1),
+                        Nombre NVARCHAR(100) NOT NULL,
+                        Descripcion NVARCHAR(300) NULL,
+                        Unidad NVARCHAR(10) NOT NULL,
+                        CantidadActual DECIMAL(12,3) NOT NULL CONSTRAINT DF_StockItems_CantidadActual DEFAULT (0),
+                        StockMinimo DECIMAL(12,3) NOT NULL CONSTRAINT DF_StockItems_StockMinimo DEFAULT (0),
+                        Activo BIT NOT NULL CONSTRAINT DF_StockItems_Activo DEFAULT (1),
+                        Version ROWVERSION NOT NULL,
+                        CONSTRAINT PK_StockItems PRIMARY KEY (Id),
+                        CONSTRAINT CK_StockItems_Unidad CHECK (Unidad IN (N'Unidad', N'Kg', N'L')),
+                        CONSTRAINT CK_StockItems_CantidadActual CHECK (CantidadActual >= 0),
+                        CONSTRAINT CK_StockItems_StockMinimo CHECK (StockMinimo >= 0)
+                    );
+                    CREATE UNIQUE INDEX UX_StockItems_Nombre ON StockItems(Nombre);
+                    CREATE INDEX IX_StockItems_Activo ON StockItems(Activo);
+                END
+
+                IF OBJECT_ID(N'dbo.MovimientosStock', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE MovimientosStock (
+                        Id INT NOT NULL IDENTITY(1,1),
+                        StockItemId INT NOT NULL,
+                        Tipo NVARCHAR(10) NOT NULL,
+                        Cantidad DECIMAL(12,3) NOT NULL,
+                        Motivo NVARCHAR(200) NULL,
+                        FechaUtc DATETIME2 NOT NULL CONSTRAINT DF_MovimientosStock_FechaUtc DEFAULT (SYSUTCDATETIME()),
+                        RegistradoPorUsuarioId INT NOT NULL,
+                        CONSTRAINT PK_MovimientosStock PRIMARY KEY (Id),
+                        CONSTRAINT FK_MovimientosStock_StockItems FOREIGN KEY (StockItemId) REFERENCES StockItems(Id) ON DELETE NO ACTION,
+                        CONSTRAINT FK_MovimientosStock_Usuarios FOREIGN KEY (RegistradoPorUsuarioId) REFERENCES Usuarios(Id) ON DELETE NO ACTION,
+                        CONSTRAINT CK_MovimientosStock_Tipo CHECK (Tipo IN (N'Entrada', N'Salida')),
+                        CONSTRAINT CK_MovimientosStock_Cantidad CHECK (Cantidad > 0)
+                    );
+                    CREATE INDEX IX_MovimientosStock_StockItemId_FechaUtc ON MovimientosStock(StockItemId, FechaUtc DESC);
                 END
                 """);
         }

@@ -32,15 +32,20 @@ CREATE TABLE RolPermisos (
 CREATE TABLE Usuarios (
     Id INT PRIMARY KEY IDENTITY(1,1),
     Nombre NVARCHAR(100) NOT NULL,
-    Email NVARCHAR(150) NOT NULL UNIQUE,
+    Email NVARCHAR(150) NOT NULL,
     PasswordHash NVARCHAR(255) NOT NULL,
     RolId INT NOT NULL,
-    Estado NVARCHAR(30) NOT NULL CONSTRAINT DF_Usuarios_Estado DEFAULT ('Activo'),
+    Estado NVARCHAR(30) NOT NULL CONSTRAINT DF_Usuarios_Estado DEFAULT (N'Activo'),
     UltimoAcceso DATETIME2 NULL,
     IntentosFallidos INT NOT NULL CONSTRAINT DF_Usuarios_Intentos DEFAULT (0),
     BloqueadoHasta DATETIME2 NULL,
-    FOREIGN KEY (RolId) REFERENCES Roles(Id)
+    CONSTRAINT UX_Usuarios_Email UNIQUE (Email),
+    CONSTRAINT FK_Usuarios_Roles FOREIGN KEY (RolId) REFERENCES Roles(Id) ON DELETE NO ACTION,
+    CONSTRAINT CK_Usuarios_Estado CHECK (Estado IN (N'Activo', N'Inactivo', N'Bloqueado'))
 );
+
+CREATE INDEX IX_Usuarios_RolId ON Usuarios(RolId);
+CREATE INDEX IX_Usuarios_Estado ON Usuarios(Estado);
 
 CREATE TABLE RefreshTokens (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -280,3 +285,38 @@ CREATE TABLE Pagos (
     CONSTRAINT CK_Pagos_Monto CHECK (Monto > 0)
 );
 CREATE INDEX IX_Pagos_PedidoId ON Pagos(PedidoId);
+
+-- Tabla StockItems (Inventario). Sin FK a Productos. Sin semilla.
+CREATE TABLE StockItems (
+    Id INT NOT NULL IDENTITY(1,1),
+    Nombre NVARCHAR(100) NOT NULL,
+    Descripcion NVARCHAR(300) NULL,
+    Unidad NVARCHAR(10) NOT NULL,
+    CantidadActual DECIMAL(12,3) NOT NULL CONSTRAINT DF_StockItems_CantidadActual DEFAULT (0),
+    StockMinimo DECIMAL(12,3) NOT NULL CONSTRAINT DF_StockItems_StockMinimo DEFAULT (0),
+    Activo BIT NOT NULL CONSTRAINT DF_StockItems_Activo DEFAULT (1),
+    Version ROWVERSION NOT NULL,
+    CONSTRAINT PK_StockItems PRIMARY KEY (Id),
+    CONSTRAINT CK_StockItems_Unidad CHECK (Unidad IN (N'Unidad', N'Kg', N'L')),
+    CONSTRAINT CK_StockItems_CantidadActual CHECK (CantidadActual >= 0),
+    CONSTRAINT CK_StockItems_StockMinimo CHECK (StockMinimo >= 0)
+);
+CREATE UNIQUE INDEX UX_StockItems_Nombre ON StockItems(Nombre);
+CREATE INDEX IX_StockItems_Activo ON StockItems(Activo);
+
+-- Tabla MovimientosStock (Inventario). Append-only. Sin semilla.
+CREATE TABLE MovimientosStock (
+    Id INT NOT NULL IDENTITY(1,1),
+    StockItemId INT NOT NULL,
+    Tipo NVARCHAR(10) NOT NULL,
+    Cantidad DECIMAL(12,3) NOT NULL,
+    Motivo NVARCHAR(200) NULL,
+    FechaUtc DATETIME2 NOT NULL CONSTRAINT DF_MovimientosStock_FechaUtc DEFAULT (SYSUTCDATETIME()),
+    RegistradoPorUsuarioId INT NOT NULL,
+    CONSTRAINT PK_MovimientosStock PRIMARY KEY (Id),
+    CONSTRAINT FK_MovimientosStock_StockItems FOREIGN KEY (StockItemId) REFERENCES StockItems(Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_MovimientosStock_Usuarios FOREIGN KEY (RegistradoPorUsuarioId) REFERENCES Usuarios(Id) ON DELETE NO ACTION,
+    CONSTRAINT CK_MovimientosStock_Tipo CHECK (Tipo IN (N'Entrada', N'Salida')),
+    CONSTRAINT CK_MovimientosStock_Cantidad CHECK (Cantidad > 0)
+);
+CREATE INDEX IX_MovimientosStock_StockItemId_FechaUtc ON MovimientosStock(StockItemId, FechaUtc DESC);

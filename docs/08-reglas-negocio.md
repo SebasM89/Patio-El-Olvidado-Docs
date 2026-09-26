@@ -21,3 +21,9 @@ Los empleados solo pueden registrar sus propias horas.
 
 RN-08
 Los pagos actualizan automáticamente la caja.
+
+RN-09
+La cantidad actual de un ítem solo cambia al registrar un movimiento, en la misma transacción. El saldo no puede quedar negativo. Los movimientos no se modifican ni se eliminan.
+
+RN-10
+Solo el administrador crea, edita y registra movimientos de inventario. El empleado consulta. El cliente no accede.

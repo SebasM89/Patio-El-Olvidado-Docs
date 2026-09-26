@@ -21,6 +21,7 @@ public static class DependencyInjection
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<IRolRepository, RolRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IProductoRepository, ProductoRepository>();
@@ -33,6 +34,8 @@ public static class DependencyInjection
         services.AddScoped<ILiquidacionRepository, LiquidacionRepository>();
         services.AddScoped<IMesaRepository, MesaRepository>();
         services.AddScoped<IReservaRepository, ReservaRepository>();
+        services.AddScoped<IStockItemRepository, StockItemRepository>();
+        services.AddScoped<IMovimientoStockRepository, MovimientoStockRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();

@@ -37,3 +37,11 @@
 - Resumen diario
 - Exportación PDF
 - Exportación CSV
+
+# RF-08 Inventario
+- Alta de ítem (saldo 0; cantidad inicial como entrada)
+- Consulta, búsqueda y filtros (activo, en alerta)
+- Actualización de datos sin cambiar cantidad ni unidad
+- Baja lógica
+- Entradas y salidas de stock
+- Alertas cuando el saldo es menor o igual al mínimo

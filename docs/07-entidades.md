@@ -142,6 +142,29 @@
 - total (derivado = suma de los tres)
 ## Inventario
 
+### StockItem (tabla StockItems)
+- id INT IDENTITY PK
+- nombre NVARCHAR(100) NOT NULL, único (UX_StockItems_Nombre)
+- descripcion NVARCHAR(300) NULL
+- unidad NVARCHAR(10) NOT NULL, nombre del enum (Unidad | Kg | L)
+- cantidadActual DECIMAL(12,3) NOT NULL DEFAULT 0, CHECK >= 0
+- stockMinimo DECIMAL(12,3) NOT NULL DEFAULT 0, CHECK >= 0
+- activo BIT NOT NULL DEFAULT 1
+- version ROWVERSION NOT NULL
+- índice IX_StockItems_Activo (Activo)
+- Sin FK a Productos. Sin semilla.
+
+### MovimientoStock (tabla MovimientosStock)
+- id INT IDENTITY PK
+- stockItemId INT NOT NULL, FK StockItems ON DELETE NO ACTION
+- tipo NVARCHAR(10) NOT NULL, nombre del enum (Entrada | Salida)
+- cantidad DECIMAL(12,3) NOT NULL, CHECK > 0
+- motivo NVARCHAR(200) NULL
+- fechaUtc DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+- registradoPorUsuarioId INT NOT NULL, FK Usuarios ON DELETE NO ACTION
+- índice IX_MovimientosStock_StockItemId_FechaUtc (StockItemId, FechaUtc DESC)
+- Sin semilla.
+
 ## Proveedor
 
 ## Promocion

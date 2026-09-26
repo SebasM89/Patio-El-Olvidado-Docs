@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
+using PatioElOlvidado.Application.Common;
 using PatioElOlvidado.Application.Interfaces;
 using PatioElOlvidado.Infrastructure.Persistence;
 
@@ -11,8 +12,19 @@ public class UnitOfWork : IUnitOfWork
 
     public UnitOfWork(AppDbContext db) => _db = db;
 
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        => _db.SaveChangesAsync(cancellationToken);
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new AppException(
+                "El ítem de stock fue modificado por otro usuario.",
+                409);
+        }
+    }
 
     public async Task<T> ExecuteInTransactionAsync<T>(
         Func<CancellationToken, Task<T>> action,

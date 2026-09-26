@@ -87,6 +87,24 @@ async function onLogout() {
           <span class="nav-title">Empleados</span>
           <span class="nav-desc">ABM, tarifas, fichaje asistido y liquidaciones (RF-06)</span>
         </RouterLink>
+        <RouterLink v-if="auth.rol === 'Admin'" to="/usuarios" class="nav-card">
+          <span class="nav-title">Usuarios</span>
+          <span class="nav-desc">Cuentas, roles y estado (solo administrador)</span>
+        </RouterLink>
+        <RouterLink
+          v-if="auth.rol === 'Admin' || auth.rol === 'Empleado'"
+          to="/inventario"
+          class="nav-card"
+        >
+          <span class="nav-title">Inventario</span>
+          <span class="nav-desc">
+            {{
+              auth.rol === 'Admin'
+                ? 'Ítems, movimientos y alertas de stock (RF-08)'
+                : 'Consulta de stock y alertas (RF-08)'
+            }}
+          </span>
+        </RouterLink>
         <RouterLink v-if="auth.rol === 'Admin'" to="/reportes" class="nav-card">
           <span class="nav-title">Reportes</span>
           <span class="nav-desc">Ventas, caja y nómina por rango (CU11)</span>

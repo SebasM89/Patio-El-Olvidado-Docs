@@ -9,3 +9,4 @@ CU08 Reservar mesa
 CU09 Consultar historial
 CU10 Aplicar descuentos
 CU11 Generar reportes
+CU12 Gestionar inventario

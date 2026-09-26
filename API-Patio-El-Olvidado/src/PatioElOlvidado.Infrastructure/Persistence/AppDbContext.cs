@@ -26,22 +26,39 @@ public class AppDbContext : DbContext
     public DbSet<Liquidacion> Liquidaciones => Set<Liquidacion>();
     public DbSet<Mesa> Mesas => Set<Mesa>();
     public DbSet<Reserva> Reservas => Set<Reserva>();
+    public DbSet<StockItem> StockItems => Set<StockItem>();
+    public DbSet<MovimientoStock> MovimientosStock => Set<MovimientoStock>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Usuario>(entity =>
         {
-            entity.ToTable("Usuarios");
+            entity.ToTable("Usuarios", t => t.HasCheckConstraint(
+                "CK_Usuarios_Estado",
+                "[Estado] IN (N'Activo', N'Inactivo', N'Bloqueado')"));
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Nombre).HasMaxLength(100).IsRequired();
             entity.Property(x => x.Email).HasMaxLength(150).IsRequired();
-            entity.HasIndex(x => x.Email).IsUnique();
+            entity.HasIndex(x => x.Email)
+                .IsUnique()
+                .HasDatabaseName("UX_Usuarios_Email");
             entity.Property(x => x.PasswordHash).HasMaxLength(255).IsRequired();
-            entity.Property(x => x.Estado).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Estado)
+                .HasMaxLength(30)
+                .IsRequired()
+                .HasDefaultValue("Activo");
+            entity.Property(x => x.UltimoAcceso).HasColumnType("datetime2");
+            entity.Property(x => x.IntentosFallidos)
+                .IsRequired()
+                .HasDefaultValue(0);
+            entity.Property(x => x.BloqueadoHasta).HasColumnType("datetime2");
+            entity.HasIndex(x => x.RolId).HasDatabaseName("IX_Usuarios_RolId");
+            entity.HasIndex(x => x.Estado).HasDatabaseName("IX_Usuarios_Estado");
             entity.HasOne(x => x.Rol)
                 .WithMany(x => x.Usuarios)
                 .HasForeignKey(x => x.RolId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_Usuarios_Roles");
         });
 
         modelBuilder.Entity<Rol>(entity =>
@@ -313,6 +330,79 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.CreadoPorUsuarioId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("FK_Reservas_Usuarios");
+        });
+
+        modelBuilder.Entity<StockItem>(entity =>
+        {
+            entity.ToTable("StockItems", t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_StockItems_Unidad",
+                    "[Unidad] IN (N'Unidad', N'Kg', N'L')");
+                t.HasCheckConstraint("CK_StockItems_CantidadActual", "[CantidadActual] >= 0");
+                t.HasCheckConstraint("CK_StockItems_StockMinimo", "[StockMinimo] >= 0");
+            });
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nombre).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Descripcion).HasMaxLength(300);
+            entity.Property(x => x.Unidad)
+                .HasConversion<string>()
+                .HasMaxLength(10)
+                .IsRequired();
+            entity.Property(x => x.CantidadActual)
+                .HasPrecision(12, 3)
+                .HasDefaultValue(0m)
+                .IsRequired();
+            entity.Property(x => x.StockMinimo)
+                .HasPrecision(12, 3)
+                .HasDefaultValue(0m)
+                .IsRequired();
+            entity.Property(x => x.Activo)
+                .IsRequired()
+                .HasDefaultValue(true);
+            entity.Property(x => x.Version).IsRowVersion();
+            entity.HasIndex(x => x.Nombre)
+                .IsUnique()
+                .HasDatabaseName("UX_StockItems_Nombre");
+            entity.HasIndex(x => x.Activo)
+                .HasDatabaseName("IX_StockItems_Activo");
+        });
+
+        modelBuilder.Entity<MovimientoStock>(entity =>
+        {
+            entity.ToTable("MovimientosStock", t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_MovimientosStock_Tipo",
+                    "[Tipo] IN (N'Entrada', N'Salida')");
+                t.HasCheckConstraint("CK_MovimientosStock_Cantidad", "[Cantidad] > 0");
+            });
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Tipo)
+                .HasConversion<string>()
+                .HasMaxLength(10)
+                .IsRequired();
+            entity.Property(x => x.Cantidad)
+                .HasPrecision(12, 3)
+                .IsRequired();
+            entity.Property(x => x.Motivo).HasMaxLength(200);
+            entity.Property(x => x.FechaUtc)
+                .HasDefaultValueSql("SYSUTCDATETIME()")
+                .ValueGeneratedOnAdd()
+                .IsRequired();
+            entity.HasIndex(x => new { x.StockItemId, x.FechaUtc })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_MovimientosStock_StockItemId_FechaUtc");
+            entity.HasOne(x => x.StockItem)
+                .WithMany(x => x.Movimientos)
+                .HasForeignKey(x => x.StockItemId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_MovimientosStock_StockItems");
+            entity.HasOne(x => x.RegistradoPorUsuario)
+                .WithMany()
+                .HasForeignKey(x => x.RegistradoPorUsuarioId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_MovimientosStock_Usuarios");
         });
     }
 }
